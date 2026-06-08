@@ -1,0 +1,950 @@
+openapi: 3.0.3
+info:
+  title: SIGAP2 - Sistem Informasi Tanggap Darurat Bencana
+  description: |
+    API documentation untuk SIGAP2 (Sistem Informasi Tanggap Darurat Bencana).
+    
+    SIGAP2 adalah platform tanggap darurat bencana yang membantu koordinasi antara
+    korban bencana, relawan, dan admin dalam proses pelaporan SOS, distribusi logistik,
+    dan pelacakan pengiriman bantuan secara real-time.
+
+    ## Fitur Utama
+    - **SOS Report**: Korban bencana dapat mengirim laporan darurat dengan lokasi GPS
+    - **NLP Analysis**: Analisis otomatis urgency dan kebutuhan menggunakan AI (Google Gemini)
+    - **Live Tracking**: Pelacakan real-time posisi relawan saat mengantarkan bantuan
+    - **Distribution Management**: Manajemen distribusi logistik dari gudang ke korban
+    - **Verification Workflow**: Admin memverifikasi bukti pengiriman dari relawan
+
+    ## Autentikasi
+    API menggunakan **JWT (JSON Web Token)** yang disimpan di HTTP-Only Cookie bernama `jwt`.
+    Token diperoleh setelah login berhasil dan berlaku selama 7 hari.
+
+    ## Roles
+    | Role | Deskripsi |
+    |------|-----------|
+    | `admin` | Administrator sistem, akses penuh |
+    | `relawan` | Relawan lapangan, mengantar bantuan |
+    | `korban` | Korban bencana, melapor kebutuhan |
+
+  version: 1.0.0
+  contact:
+    name: Tim SIGAP2
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local Development Server
+  - url: https://sigap2-production.up.railway.app
+    description: Production Server (Cloud)
+
+tags:
+  - name: Auth
+    description: Autentikasi pengguna (Login, Register, Logout)
+  - name: SOS
+    description: Laporan darurat publik
+  - name: Reports
+    description: Manajemen laporan bencana
+  - name: Deliveries
+    description: Tracking pengiriman bantuan & update lokasi GPS
+  - name: Notifications
+    description: Notifikasi untuk admin/relawan
+  - name: Logistics
+    description: Manajemen stok logistik
+  - name: Distributions
+    description: Distribusi logistik ke korban
+  - name: Volunteers
+    description: Manajemen data relawan (Admin only)
+  - name: Verifications
+    description: Verifikasi bukti pengiriman (Admin only)
+
+paths:
+  # ============================================================
+  # AUTH
+  # ============================================================
+  /login:
+    post:
+      tags: [Auth]
+      summary: Login pengguna
+      description: |
+        Autentikasi pengguna dengan email dan password.
+        Jika berhasil, server mengembalikan JWT token di HTTP-Only Cookie `jwt`.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@sigap.id
+                password:
+                  type: string
+                  format: password
+                  example: admin123
+      responses:
+        "302":
+          description: Login berhasil — redirect ke `/dashboard`
+          headers:
+            Set-Cookie:
+              description: JWT token disimpan di cookie HTTP-Only
+              schema:
+                type: string
+                example: jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...; HttpOnly
+        "200":
+          description: Login gagal — render halaman login dengan pesan error
+          content:
+            text/html:
+              schema:
+                type: string
+
+  /register:
+    post:
+      tags: [Auth]
+      summary: Registrasi pengguna baru (role korban)
+      description: |
+        Mendaftarkan pengguna baru dengan role `korban`. 
+        Registrasi ini terbuka untuk publik.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  example: Budi Santoso
+                email:
+                  type: string
+                  format: email
+                  example: budi@example.com
+                password:
+                  type: string
+                  format: password
+                  example: password123
+                phone:
+                  type: string
+                  example: "08123456789"
+      responses:
+        "302":
+          description: Registrasi berhasil — redirect ke `/login?registered=1`
+        "200":
+          description: Registrasi gagal (email sudah terdaftar) — render form dengan error
+
+  /logout:
+    post:
+      tags: [Auth]
+      summary: Logout pengguna
+      description: Menghapus cookie JWT dan redirect ke halaman utama.
+      responses:
+        "302":
+          description: Logout berhasil — redirect ke `/`
+
+  # ============================================================
+  # SOS (PUBLIC)
+  # ============================================================
+  /api/sos:
+    post:
+      tags: [SOS]
+      summary: Kirim laporan SOS darurat
+      description: |
+        Endpoint publik untuk mengirim laporan darurat bencana.
+        Sistem akan otomatis menganalisis tingkat urgensi dan mengekstrak
+        kebutuhan logistik dari deskripsi menggunakan AI (Google Gemini + regex fallback).
+        
+        **Tidak memerlukan autentikasi** — siapa saja dapat mengirim SOS.
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [latitude, longitude, description]
+              properties:
+                reporter_name:
+                  type: string
+                  description: Nama pelapor (opsional, default "Anonim")
+                  example: Ahmad
+                needs:
+                  type: string
+                  description: Kebutuhan mendesak korban
+                  example: "air mineral 10, makanan 20, selimut 5"
+                latitude:
+                  type: number
+                  format: double
+                  description: Latitude lokasi korban
+                  example: -6.2088
+                longitude:
+                  type: number
+                  format: double
+                  description: Longitude lokasi korban
+                  example: 106.8456
+                description:
+                  type: string
+                  description: Deskripsi lengkap situasi darurat
+                  example: "Kami 15 orang terjebak banjir di lantai 2 rumah. Butuh evakuasi segera. Ada lansia dan anak kecil."
+      responses:
+        "200":
+          description: Laporan SOS berhasil dikirim
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: SOS Sent!
+        "302":
+          description: Redirect ke `/sos?success=true` (non-AJAX request)
+        "500":
+          description: Gagal menyimpan laporan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ============================================================
+  # REPORTS API
+  # ============================================================
+  /api/reports/markers:
+    get:
+      tags: [Reports]
+      summary: Ambil marker laporan untuk peta
+      description: |
+        Mengembalikan semua laporan dalam format ringan untuk ditampilkan
+        sebagai marker di peta (Leaflet/Google Maps).
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Daftar marker laporan
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Marker"
+              example:
+                - id: 1
+                  lat: -6.2088
+                  lng: 106.8456
+                  status: pending
+                  name: Ahmad
+                  needs: "air mineral 10, makanan 20"
+                - id: 2
+                  lat: -6.9175
+                  lng: 107.6191
+                  status: process
+                  name: Siti
+                  needs: selimut 5
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /reports/{id}/complete:
+    post:
+      tags: [Reports]
+      summary: Selesaikan laporan
+      description: |
+        Menandai laporan sebagai `completed`. 
+        Korban hanya bisa menyelesaikan laporannya sendiri.
+        Admin/Relawan bisa menyelesaikan laporan mana saja.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        "302":
+          description: Redirect ke detail laporan
+        "403":
+          description: Forbidden — bukan pemilik laporan
+        "404":
+          description: Laporan tidak ditemukan
+
+  /reports/admin/export:
+    get:
+      tags: [Reports]
+      summary: Export semua laporan ke CSV
+      description: Mengunduh seluruh data laporan dalam format CSV. **Admin only.**
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: File CSV
+          content:
+            text/csv:
+              schema:
+                type: string
+              example: |
+                ID Laporan,Waktu,Nama Pelapor,No WhatsApp,Kebutuhan,Keterangan,Status
+                1,2026-01-15 10:30:00,Ahmad,08123456789,"air 10","banjir",pending
+
+  /reports/admin/delete-all:
+    post:
+      tags: [Reports]
+      summary: Hapus semua laporan
+      description: |
+        Menghapus (TRUNCATE) seluruh data laporan dan distribusi.
+        **Admin only. Hati-hati, aksi ini tidak dapat dibatalkan!**
+      security:
+        - cookieAuth: []
+      responses:
+        "302":
+          description: Redirect ke `/reports?success=deleted`
+
+  # ============================================================
+  # NOTIFICATIONS
+  # ============================================================
+  /api/notifications:
+    get:
+      tags: [Notifications]
+      summary: Ambil notifikasi laporan pending
+      description: |
+        Mengembalikan daftar laporan berstatus `pending` untuk ditampilkan
+        sebagai notifikasi real-time di dashboard admin/relawan.
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Daftar notifikasi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+                    example: 3
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/NotifItem"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ============================================================
+  # DELIVERIES / TRACKING
+  # ============================================================
+  /api/deliveries/active:
+    get:
+      tags: [Deliveries]
+      summary: Ambil semua pengiriman aktif
+      description: |
+        Mengembalikan daftar pengiriman yang sedang berlangsung (status `delivering`)
+        beserta posisi GPS relawan. Digunakan untuk peta tracking admin.
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: Daftar pengiriman aktif
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActiveDelivery"
+              example:
+                - id: 1
+                  volunteer_name: "Andi Relawan"
+                  volunteer_phone: "08123456789"
+                  volunteer_lat: -6.2100
+                  volunteer_lng: 106.8450
+                  dest_lat: -6.2088
+                  dest_lng: 106.8456
+                  recipient_name: Ahmad
+                  item_name: "Air Mineral"
+                  quantity_sent: 10
+                  unit: "dus"
+                  report_id: 1
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/deliveries/{id}/location:
+    post:
+      tags: [Deliveries]
+      summary: Update lokasi GPS relawan
+      description: |
+        Relawan mengirim posisi GPS terkini saat mengantarkan bantuan.
+        Dipanggil secara berkala oleh browser relawan menggunakan Geolocation API.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID distribusi yang sedang dikirim
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lat, lng]
+              properties:
+                lat:
+                  type: number
+                  format: double
+                  description: Latitude posisi relawan
+                  example: -6.2100
+                lng:
+                  type: number
+                  format: double
+                  description: Longitude posisi relawan
+                  example: 106.8450
+      responses:
+        "200":
+          description: Lokasi berhasil diupdate
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        "400":
+          description: ID atau body tidak valid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Gagal update lokasi
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    get:
+      tags: [Deliveries]
+      summary: Ambil lokasi terkini suatu pengiriman
+      description: |
+        Mengembalikan posisi GPS terkini relawan untuk pengiriman tertentu.
+        Digunakan oleh admin untuk tracking detail per-delivery.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID distribusi
+          schema:
+            type: integer
+          example: 1
+      responses:
+        "200":
+          description: Data lokasi pengiriman
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    example: 1
+                  status:
+                    type: string
+                    example: delivering
+                  volunteer_name:
+                    type: string
+                    example: Andi Relawan
+                  volunteer_lat:
+                    type: number
+                    format: double
+                    example: -6.2100
+                  volunteer_lng:
+                    type: number
+                    format: double
+                    example: 106.8450
+                  dest_lat:
+                    type: number
+                    format: double
+                    example: -6.2088
+                  dest_lng:
+                    type: number
+                    format: double
+                    example: 106.8456
+        "404":
+          description: Pengiriman tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  # ============================================================
+  # DELIVERY CONFIRMATION
+  # ============================================================
+  /deliver/report/{report_id}:
+    post:
+      tags: [Deliveries]
+      summary: Konfirmasi pengiriman dengan foto bukti
+      description: |
+        Relawan mengkonfirmasi bahwa bantuan telah sampai ke korban
+        dengan mengunggah foto bukti pengiriman. Semua item distribusi
+        untuk report tersebut akan ditandai `delivered`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: report_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [proof_photo]
+              properties:
+                proof_photo:
+                  type: string
+                  format: binary
+                  description: Foto bukti pengiriman (JPG/PNG)
+      responses:
+        "302":
+          description: Redirect ke `/distributions`
+        "400":
+          description: Foto bukti tidak dilampirkan
+
+  # ============================================================
+  # VERIFICATIONS (Admin)
+  # ============================================================
+  /verifications/{id}:
+    post:
+      tags: [Verifications]
+      summary: Verifikasi pengiriman (approve/reject)
+      description: |
+        Admin memverifikasi bukti pengiriman dari relawan.
+        Jika semua distribusi untuk suatu report sudah diverifikasi,
+        report otomatis ditandai `completed`.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [approve, reject]
+                  description: Keputusan admin
+                  example: approve
+                notes:
+                  type: string
+                  description: Catatan admin (opsional)
+                  example: "Foto jelas, barang sudah sampai"
+      responses:
+        "302":
+          description: Redirect ke `/verifications`
+        "400":
+          description: ID tidak valid
+        "500":
+          description: Gagal memverifikasi
+
+  # ============================================================
+  # VOLUNTEERS (Admin only)
+  # ============================================================
+  /volunteers/create:
+    post:
+      tags: [Volunteers]
+      summary: Buat akun relawan baru
+      description: Admin membuat akun relawan baru.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  example: Andi Relawan
+                email:
+                  type: string
+                  format: email
+                  example: andi@relawan.id
+                password:
+                  type: string
+                  example: relawan123
+                phone:
+                  type: string
+                  example: "08198765432"
+      responses:
+        "302":
+          description: Redirect ke `/volunteers?success=1`
+        "200":
+          description: Gagal (email sudah terdaftar) — render form dengan error
+
+  /volunteers/{id}/password:
+    get:
+      tags: [Volunteers]
+      summary: Lihat password relawan (Admin only)
+      description: Mengembalikan plain password relawan untuk keperluan admin.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Password relawan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  password:
+                    type: string
+                    example: relawan123
+        "404":
+          description: User tidak ditemukan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /volunteers/{id}/reset-password:
+    post:
+      tags: [Volunteers]
+      summary: Reset password relawan
+      description: Admin mereset password relawan.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [new_password]
+              properties:
+                new_password:
+                  type: string
+                  example: newpass456
+      responses:
+        "302":
+          description: Redirect ke `/volunteers?success=1`
+
+  /volunteers/{id}/delete:
+    post:
+      tags: [Volunteers]
+      summary: Hapus relawan (dengan konfirmasi nama)
+      description: |
+        Admin menghapus akun relawan. Memerlukan konfirmasi nama relawan 
+        untuk mencegah penghapusan tidak sengaja.
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [confirm_name]
+              properties:
+                confirm_name:
+                  type: string
+                  description: Nama relawan (harus cocok persis)
+                  example: Andi Relawan
+      responses:
+        "302":
+          description: Redirect ke `/volunteers?deleted=1`
+        "400":
+          description: Nama konfirmasi tidak cocok
+
+  # ============================================================
+  # PROFILE
+  # ============================================================
+  /profile/change-password:
+    post:
+      tags: [Auth]
+      summary: Ganti password sendiri
+      description: User mengganti password-nya sendiri. Memerlukan password lama.
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [old_password, new_password]
+              properties:
+                old_password:
+                  type: string
+                  example: oldpass123
+                new_password:
+                  type: string
+                  example: newpass456
+      responses:
+        "302":
+          description: Redirect ke halaman sebelumnya dengan `?pwd_success=1`
+        "400":
+          description: Password lama tidak sesuai atau input kosong
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: jwt
+      description: JWT token disimpan di HTTP-Only cookie
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Something went wrong"
+
+    Marker:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID laporan
+        lat:
+          type: number
+          format: double
+          description: Latitude lokasi korban
+        lng:
+          type: number
+          format: double
+          description: Longitude lokasi korban
+        status:
+          type: string
+          enum: [pending, process, completed]
+          description: Status laporan
+        name:
+          type: string
+          description: Nama pelapor
+        needs:
+          type: string
+          description: Kebutuhan korban
+
+    NotifItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        reporter_name:
+          type: string
+        needs:
+          type: string
+        status:
+          type: string
+        urgency_level:
+          type: string
+          enum: [low, medium, high, critical]
+        created_at:
+          type: string
+          format: date-time
+
+    ActiveDelivery:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: ID distribusi
+        volunteer_name:
+          type: string
+        volunteer_phone:
+          type: string
+        volunteer_lat:
+          type: number
+          format: double
+        volunteer_lng:
+          type: number
+          format: double
+        dest_lat:
+          type: number
+          format: double
+        dest_lng:
+          type: number
+          format: double
+        recipient_name:
+          type: string
+        item_name:
+          type: string
+        quantity_sent:
+          type: integer
+        unit:
+          type: string
+        report_id:
+          type: integer
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [admin, relawan, korban]
+        phone:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+          nullable: true
+        reporter_name:
+          type: string
+        needs:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        description:
+          type: string
+        status:
+          type: string
+          enum: [pending, process, completed]
+        urgency_level:
+          type: string
+          enum: [low, medium, high, critical]
+        extracted_data:
+          type: string
+          description: JSON string of extracted items from NLP analysis
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Distribution:
+      type: object
+      properties:
+        id:
+          type: integer
+        report_id:
+          type: integer
+        logistic_id:
+          type: integer
+        quantity_sent:
+          type: integer
+        volunteer_id:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [delivering, delivered, verified, rejected]
+        proof_photo_path:
+          type: string
+        volunteer_lat:
+          type: number
+          format: double
+        volunteer_lng:
+          type: number
+          format: double
+        verified_by_id:
+          type: integer
+          nullable: true
+        verified_at:
+          type: string
+          format: date-time
+          nullable: true
+        admin_notes:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Logistic:
+      type: object
+      properties:
+        id:
+          type: integer
+        item_name:
+          type: string
+        quantity:
+          type: integer
+        unit:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
