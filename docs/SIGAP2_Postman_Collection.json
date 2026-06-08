@@ -1,0 +1,611 @@
+{
+	"info": {
+		"_postman_id": "sigap2-api-collection",
+		"name": "SIGAP2 — Sistem Tanggap Darurat Bencana API",
+		"description": "Postman Collection untuk API SIGAP2.\n\nSIGAP2 adalah platform tanggap darurat bencana yang membantu koordinasi antara korban bencana, relawan, dan admin.\n\n## Autentikasi\nAPI menggunakan JWT Cookie. Lakukan login terlebih dahulu, lalu Postman akan otomatis menyimpan cookie `jwt` untuk request selanjutnya.\n\n## Base URL\n- **Local**: http://localhost:3000\n- **Production**: https://sigap2-production.up.railway.app",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Auth",
+			"description": "Autentikasi pengguna",
+			"item": [
+				{
+					"name": "Login",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "email",
+									"value": "admin@sigap.id",
+									"description": "Email pengguna",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "admin123",
+									"description": "Password pengguna",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/login",
+							"host": ["{{base_url}}"],
+							"path": ["login"]
+						},
+						"description": "Login pengguna. Mengembalikan JWT token di cookie `jwt`.\n\n**Akun default:**\n- Admin: admin@sigap.id / admin123\n- Relawan: relawan@sigap.id / relawan123"
+					},
+					"response": []
+				},
+				{
+					"name": "Register (Korban)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "name",
+									"value": "Budi Santoso",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "budi@example.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "password123",
+									"type": "text"
+								},
+								{
+									"key": "phone",
+									"value": "08123456789",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/register",
+							"host": ["{{base_url}}"],
+							"path": ["register"]
+						},
+						"description": "Registrasi pengguna baru. Role otomatis = korban."
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/logout",
+							"host": ["{{base_url}}"],
+							"path": ["logout"]
+						},
+						"description": "Menghapus cookie JWT."
+					},
+					"response": []
+				},
+				{
+					"name": "Ganti Password Sendiri",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "old_password",
+									"value": "admin123",
+									"type": "text"
+								},
+								{
+									"key": "new_password",
+									"value": "newpassword456",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/profile/change-password",
+							"host": ["{{base_url}}"],
+							"path": ["profile", "change-password"]
+						},
+						"description": "Ganti password sendiri. Memerlukan autentikasi."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "SOS Reports",
+			"description": "Laporan darurat bencana",
+			"item": [
+				{
+					"name": "Kirim Laporan SOS (Public)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Requested-With",
+								"value": "XMLHttpRequest",
+								"description": "Supaya response JSON (bukan redirect)"
+							}
+						],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "reporter_name",
+									"value": "Ahmad",
+									"type": "text"
+								},
+								{
+									"key": "needs",
+									"value": "air mineral 10, makanan 20, selimut 5",
+									"type": "text"
+								},
+								{
+									"key": "latitude",
+									"value": "-6.2088",
+									"type": "text"
+								},
+								{
+									"key": "longitude",
+									"value": "106.8456",
+									"type": "text"
+								},
+								{
+									"key": "description",
+									"value": "Kami 15 orang terjebak banjir di lantai 2 rumah. Butuh bantuan segera. Ada lansia dan anak kecil.",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/sos",
+							"host": ["{{base_url}}"],
+							"path": ["api", "sos"]
+						},
+						"description": "Kirim laporan SOS darurat. **Tidak perlu login.**\n\nSistem akan otomatis menganalisis:\n- Tingkat urgensi (low/medium/high/critical) menggunakan AI Gemini\n- Ekstraksi kebutuhan logistik dari teks"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"message\": \"SOS Sent!\"\n}",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Ambil Markers Peta",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/reports/markers",
+							"host": ["{{base_url}}"],
+							"path": ["api", "reports", "markers"]
+						},
+						"description": "Ambil semua laporan untuk ditampilkan sebagai marker di peta.\n\n**Memerlukan autentikasi.**"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "[\n  {\n    \"id\": 1,\n    \"lat\": -6.2088,\n    \"lng\": 106.8456,\n    \"status\": \"pending\",\n    \"name\": \"Ahmad\",\n    \"needs\": \"air mineral 10, makanan 20\"\n  },\n  {\n    \"id\": 2,\n    \"lat\": -6.9175,\n    \"lng\": 107.6191,\n    \"status\": \"process\",\n    \"name\": \"Siti\",\n    \"needs\": \"selimut 5\"\n  }\n]",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Selesaikan Laporan",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/reports/1/complete",
+							"host": ["{{base_url}}"],
+							"path": ["reports", "1", "complete"]
+						},
+						"description": "Tandai laporan sebagai `completed`.\n\nKorban hanya bisa menyelesaikan laporannya sendiri. Admin/Relawan bisa menyelesaikan laporan mana saja."
+					},
+					"response": []
+				},
+				{
+					"name": "Export Laporan ke CSV (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/reports/admin/export",
+							"host": ["{{base_url}}"],
+							"path": ["reports", "admin", "export"]
+						},
+						"description": "Download seluruh laporan dalam format CSV. **Admin only.**"
+					},
+					"response": []
+				},
+				{
+					"name": "Hapus Semua Laporan (Admin)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/reports/admin/delete-all",
+							"host": ["{{base_url}}"],
+							"path": ["reports", "admin", "delete-all"]
+						},
+						"description": "TRUNCATE semua data laporan dan distribusi. **Admin only. Irreversible!**"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Notifications",
+			"description": "Notifikasi untuk admin/relawan",
+			"item": [
+				{
+					"name": "Ambil Notifikasi Pending",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/notifications",
+							"host": ["{{base_url}}"],
+							"path": ["api", "notifications"]
+						},
+						"description": "Ambil daftar laporan pending sebagai notifikasi.\n\n**Memerlukan role admin atau relawan.**"
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"count\": 2,\n  \"items\": [\n    {\n      \"id\": 1,\n      \"reporter_name\": \"Ahmad\",\n      \"needs\": \"air mineral 10\",\n      \"status\": \"pending\",\n      \"urgency_level\": \"high\",\n      \"created_at\": \"2026-01-15T10:30:00Z\"\n    }\n  ]\n}",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Delivery Tracking",
+			"description": "Pelacakan pengiriman bantuan real-time",
+			"item": [
+				{
+					"name": "Ambil Semua Pengiriman Aktif",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/deliveries/active",
+							"host": ["{{base_url}}"],
+							"path": ["api", "deliveries", "active"]
+						},
+						"description": "Ambil semua pengiriman yang sedang berlangsung (status `delivering`).\n\nDigunakan untuk peta tracking admin."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "[\n  {\n    \"id\": 1,\n    \"volunteer_name\": \"Andi Relawan\",\n    \"volunteer_phone\": \"08123456789\",\n    \"volunteer_lat\": -6.2100,\n    \"volunteer_lng\": 106.8450,\n    \"dest_lat\": -6.2088,\n    \"dest_lng\": 106.8456,\n    \"recipient_name\": \"Ahmad\",\n    \"item_name\": \"Air Mineral\",\n    \"quantity_sent\": 10,\n    \"unit\": \"dus\",\n    \"report_id\": 1\n  }\n]",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Update Lokasi GPS Relawan",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"lat\": -6.2100,\n  \"lng\": 106.8450\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/deliveries/1/location",
+							"host": ["{{base_url}}"],
+							"path": ["api", "deliveries", "1", "location"]
+						},
+						"description": "Relawan mengirim posisi GPS terkini saat mengantarkan bantuan.\n\nDipanggil secara berkala (setiap 5 detik) oleh browser relawan menggunakan Geolocation API."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"status\": \"ok\"\n}",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Ambil Lokasi Pengiriman Tertentu",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/deliveries/1/location",
+							"host": ["{{base_url}}"],
+							"path": ["api", "deliveries", "1", "location"]
+						},
+						"description": "Ambil posisi GPS terkini relawan untuk pengiriman tertentu."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"id\": 1,\n  \"status\": \"delivering\",\n  \"volunteer_name\": \"Andi Relawan\",\n  \"volunteer_lat\": -6.2100,\n  \"volunteer_lng\": 106.8450,\n  \"dest_lat\": -6.2088,\n  \"dest_lng\": 106.8456\n}",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Konfirmasi Pengiriman + Upload Foto",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "proof_photo",
+									"type": "file",
+									"description": "Foto bukti pengiriman (JPG/PNG)"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/deliver/report/1",
+							"host": ["{{base_url}}"],
+							"path": ["deliver", "report", "1"]
+						},
+						"description": "Relawan mengkonfirmasi bahwa bantuan telah sampai dengan upload foto bukti."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Verifications (Admin)",
+			"description": "Verifikasi bukti pengiriman oleh admin",
+			"item": [
+				{
+					"name": "Approve Pengiriman",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "action",
+									"value": "approve",
+									"type": "text"
+								},
+								{
+									"key": "notes",
+									"value": "Foto jelas, barang sudah sampai dengan baik",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/verifications/1",
+							"host": ["{{base_url}}"],
+							"path": ["verifications", "1"]
+						},
+						"description": "Admin menyetujui bukti pengiriman dari relawan."
+					},
+					"response": []
+				},
+				{
+					"name": "Reject Pengiriman",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "action",
+									"value": "reject",
+									"type": "text"
+								},
+								{
+									"key": "notes",
+									"value": "Foto tidak jelas, mohon kirim ulang",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/verifications/1",
+							"host": ["{{base_url}}"],
+							"path": ["verifications", "1"]
+						},
+						"description": "Admin menolak bukti pengiriman. Relawan harus mengirim ulang."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Volunteers (Admin)",
+			"description": "Manajemen relawan oleh admin",
+			"item": [
+				{
+					"name": "Buat Akun Relawan",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "name",
+									"value": "Andi Relawan",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "andi@relawan.id",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "relawan123",
+									"type": "text"
+								},
+								{
+									"key": "phone",
+									"value": "08198765432",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/volunteers/create",
+							"host": ["{{base_url}}"],
+							"path": ["volunteers", "create"]
+						},
+						"description": "Admin membuat akun relawan baru."
+					},
+					"response": []
+				},
+				{
+					"name": "Lihat Password Relawan",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/volunteers/1/password",
+							"host": ["{{base_url}}"],
+							"path": ["volunteers", "1", "password"]
+						},
+						"description": "Admin melihat password relawan."
+					},
+					"response": [
+						{
+							"name": "Success",
+							"status": "OK",
+							"code": 200,
+							"body": "{\n  \"password\": \"relawan123\"\n}",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Reset Password Relawan",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "new_password",
+									"value": "newpassword456",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/volunteers/1/reset-password",
+							"host": ["{{base_url}}"],
+							"path": ["volunteers", "1", "reset-password"]
+						},
+						"description": "Admin mereset password relawan."
+					},
+					"response": []
+				},
+				{
+					"name": "Hapus Relawan",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "confirm_name",
+									"value": "Andi Relawan",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/volunteers/1/delete",
+							"host": ["{{base_url}}"],
+							"path": ["volunteers", "1", "delete"]
+						},
+						"description": "Admin menghapus relawan. Nama harus cocok persis sebagai konfirmasi."
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
