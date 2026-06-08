@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIGAP - Sistem Informasi Tanggap & Alert Pasca-Bencana</title>
+    
+    <!-- View Transitions for smooth page navigation -->
+    <meta name="view-transition" content="same-origin" />
+
+    <!-- Tailwind CSS (Play CDN for dev) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        sigap: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            900: '#7c2d12',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/custom.css">
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+    
+    {{ if .User }}
+    <!-- Authenticated Layout -->
+    <div class="flex h-screen bg-slate-100 overflow-hidden relative">
+        <!-- Mobile Sidebar Backdrop -->
+        <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 hidden md:hidden transition-opacity" onclick="toggleSidebar()"></div>
+
+        <!-- Sidebar -->
+        <aside class="w-64 bg-slate-900 text-white flex flex-col transition-transform duration-300 transform -translate-x-full md:translate-x-0 absolute md:relative z-40 h-full" id="sidebar">
+            <div class="h-16 flex items-center justify-between border-b border-slate-800 px-4">
+                <div class="flex items-center">
+                    <div class="bg-white p-1 rounded-md shadow-sm">
+                        <img src="/static/img/logo.png" alt="SIGAP Logo" class="h-8 w-auto object-contain">
+                    </div>
+                    <span class="text-xl font-bold tracking-wider text-white ml-3">SIGAP<span class="text-sigap-500">.</span></span>
+                </div>
+                <!-- Close Button (Mobile Only) -->
+                <button class="md:hidden text-slate-400 hover:text-white transition" onclick="toggleSidebar()">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="p-4">
+                <div class="mb-4">
+                    <p class="text-xs text-slate-400 uppercase tracking-wider">Menu Utama</p>
+                </div>
+                
+                <nav class="space-y-2">
+                    {{ if ne .User.Role "korban" }}
+                    <a href="/dashboard" class="flex items-center px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition-all duration-300">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                        Dashboard
+                    </a>
+                    <a href="/reports" class="flex items-center px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        Daftar Laporan
+                    </a>
+                    <a href="/logistics" class="flex items-center px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                        Logistik
+                    </a>
+                    <a href="/distributions" class="flex items-center px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                        Distribusi
+                    </a>
+
+                    {{ if eq .User.Role "admin" }}
+                    <a href="/tracking" class="flex items-center px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                        Live Tracking
+                    </a>
+                    <a href="/verifications" class="flex items-center px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Verifikasi
+                    </a>
+                    <a href="/volunteers" class="flex items-center px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                        Tim Relawan
+                    </a>
+                    {{ end }}
+
+                    {{ if eq .User.Role "relawan" }}
+                    <a href="/deliver" class="flex items-center px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Tugas Antar
+                    </a>
+                    {{ end }}
+                    {{ else }}
+                    <a href="/sos" class="flex items-center px-4 py-3 bg-red-600 rounded-lg text-white hover:bg-red-700 shadow-lg shadow-red-500/30 transition">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Kirim SOS
+                    </a>
+                    <a href="/reports/my" class="flex items-center px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800 hover:text-white transition">
+                        <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        Laporan Saya
+                    </a>
+                    {{ end }}
+                </nav>
+            </div>
+            
+            <div class="mt-auto p-4 border-t border-slate-800">
+                <button onclick="document.getElementById('profile-modal').classList.remove('hidden')" class="w-full flex items-center mb-4 p-2 rounded-lg hover:bg-slate-800 transition-all duration-300 text-left cursor-pointer group">
+                    <div class="w-10 h-10 rounded-full bg-slate-700 group-hover:bg-sigap-500 group-hover:shadow-lg group-hover:shadow-sigap-500/30 flex items-center justify-center text-white font-bold transition-all duration-300">
+                        {{ slice .User.Name 0 1 }}
+                    </div>
+                    <div class="ml-3 flex-1 overflow-hidden">
+                        <p class="text-sm font-medium text-white truncate">{{ .User.Name }}</p>
+                        <p class="text-xs text-slate-400 capitalize truncate">{{ .User.Role }}</p>
+                    </div>
+                    <svg class="w-5 h-5 text-slate-500 group-hover:text-white transition-opacity duration-300 opacity-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </button>
+                <form action="/logout" method="POST">
+                    <button type="submit" class="w-full flex items-center justify-center px-4 py-2 text-sm text-red-400 hover:bg-slate-800 rounded-lg transition">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        Logout
+                    </button>
+                </form>
+                <script>
+                    function toggleSidebar() {
+                        const sidebar = document.getElementById('sidebar');
+                        const backdrop = document.getElementById('sidebar-backdrop');
+                        if (sidebar && backdrop) {
+                            sidebar.classList.toggle('-translate-x-full');
+                            backdrop.classList.toggle('hidden');
+                        }
+                    }
+                </script>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <!-- Topbar -->
+            <header class="h-16 bg-white shadow-sm flex items-center justify-between px-6 z-10">
+                <button class="md:hidden text-slate-500 hover:text-slate-700" onclick="toggleSidebar()">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </button>
+                
+                <div class="flex items-center space-x-4 ml-auto">
+                    {{ if or (eq .User.Role "admin") (eq .User.Role "relawan") }}
+                    <!-- Notification Bell -->
+                    <div class="relative" id="notif-wrapper">
+                        <button id="notif-btn" onclick="toggleNotifDropdown()" class="relative text-slate-400 hover:text-slate-600 transition-colors duration-200 focus:outline-none" aria-label="Notifikasi">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                            </svg>
+                            <!-- Badge -->
+                            <span id="notif-badge" class="absolute -top-1.5 -right-1.5 hidden min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 shadow-lg shadow-red-500/40 animate-pulse"></span>
+                        </button>
+
+                        <!-- Dropdown Panel -->
+                        <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl shadow-slate-900/15 border border-slate-100 z-50 overflow-hidden">
+                            <!-- Header -->
+                            <div class="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-900 to-slate-800">
+                                <div class="flex items-center gap-2">
+                                    <svg class="w-4 h-4 text-sigap-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+                                    </svg>
+                                    <span class="text-sm font-semibold text-white">Laporan Masuk</span>
+                                </div>
+                                <span id="notif-count-label" class="text-xs font-bold text-sigap-400 bg-sigap-500/20 px-2 py-0.5 rounded-full">0 baru</span>
+                            </div>
+
+                            <!-- List -->
+                            <div id="notif-list" class="divide-y divide-slate-50 max-h-72 overflow-y-auto">
+                                <!-- populated by JS -->
+                                <div id="notif-empty" class="flex flex-col items-center justify-center py-10 text-slate-400">
+                                    <svg class="w-10 h-10 mb-2 text-slate-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    <span class="text-xs font-medium">Tidak ada laporan baru</span>
+                                </div>
+                            </div>
+
+                            <!-- Footer -->
+                            <div class="px-4 py-2.5 bg-slate-50 border-t border-slate-100">
+                                <a href="/reports" class="block text-center text-xs font-semibold text-sigap-600 hover:text-sigap-700 transition-colors">
+                                    Lihat Semua Laporan →
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {{ end }}
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="flex-1 overflow-auto bg-slate-50/50 p-6">
+                {{ embed }}
+            </div>
+        </main>
+
+        <!-- Profile Modal -->
+        <div id="profile-modal" class="fixed inset-0 z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" aria-hidden="true" onclick="document.getElementById('profile-modal').classList.add('hidden')"></div>
+
+            <div class="fixed inset-0 z-10 overflow-y-auto">
+                <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                    <!-- Modal panel -->
+                    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-100 animate-[fadeIn_0.2s_ease-out]">
+                        <div class="bg-gradient-to-r from-slate-900 to-slate-800 px-4 py-8 sm:px-6 relative text-center">
+                            <button onclick="document.getElementById('profile-modal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-400 hover:text-white transition bg-slate-800/50 hover:bg-slate-700 rounded-full p-1">
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <div class="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-sigap-400 to-sigap-600 border-4 border-slate-800 shadow-lg shadow-sigap-500/30 text-white text-4xl font-black mb-4">
+                                {{ slice .User.Name 0 1 }}
+                            </div>
+                            <h3 class="text-xl font-bold text-white mb-2 tracking-tight" id="modal-title">{{ .User.Name }}</h3>
+                            <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ if eq .User.Role `admin` }}bg-red-500/20 text-red-200 border border-red-500/30{{ else if eq .User.Role `relawan` }}bg-blue-500/20 text-blue-200 border border-blue-500/30{{ else }}bg-green-500/20 text-green-200 border border-green-500/30{{ end }} capitalize tracking-wide shadow-sm">
+                                {{ .User.Role }}
+                            </span>
+                        </div>
+                        <div class="bg-white px-6 py-6">
+                            <div class="space-y-5">
+                                <div>
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Informasi Kontak</p>
+                                    <div class="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-4">
+                                        <div class="flex items-center text-sm text-slate-700">
+                                            <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 mr-3 shrink-0">
+                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                                                </svg>
+                                            </div>
+                                            <span class="font-medium">{{ .User.Email }}</span>
+                                        </div>
+                                        <div class="flex items-center text-sm text-slate-700">
+                                            <div class="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-green-500 mr-3 shrink-0">
+                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.864-1.068a11.965 11.965 0 00-3.14-.543c-.504 0-.916.386-1.002.884l-.13 1.155c-1.385-.25-2.735-.85-3.95-1.745a12.01 12.01 0 01-3.52-3.52c-.895-1.215-1.495-2.565-1.744-3.95l1.154-.13c.498-.086.884-.498.884-1.002a11.96 11.96 0 00-.543-3.14C12.964 2.602 12.514 2.25 12 2.25H6.75A2.25 2.25 0 004.5 4.5v2.25z" />
+                                                </svg>
+                                            </div>
+                                            {{ if .User.Phone }}<span class="font-medium">{{ .User.Phone }}</span>{{ else }}<span class="text-slate-400 italic">Belum diset</span>{{ end }}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Aktivitas Akun</p>
+                                    <div class="bg-slate-50/50 rounded-xl p-4 border border-slate-100 flex items-center">
+                                        <div class="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 mr-3 shrink-0">
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                        </div>
+                                        <span class="text-sm text-slate-600">Bergabung pada <span class="font-semibold text-slate-800">{{ .User.CreatedAt.Format "02 Jan 2006" }}</span></span>
+                                    </div>
+                                </div>
+                                
+                                <div>
+                                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Ubah Password</p>
+                                    <form action="/profile/change-password" method="POST" class="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-4">
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-700 mb-1">Password Lama</label>
+                                            <input type="password" name="old_password" required class="block w-full rounded-md border-0 py-1.5 px-3 text-sm text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sigap-600">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-700 mb-1">Password Baru</label>
+                                            <input type="password" name="new_password" required class="block w-full rounded-md border-0 py-1.5 px-3 text-sm text-slate-900 shadow-sm ring-1 ring-inset ring-slate-300 placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-sigap-600">
+                                        </div>
+                                        <div class="flex justify-end pt-2">
+                                            <button type="submit" class="inline-flex justify-center rounded-lg border border-transparent bg-sigap-600 px-4 py-2 text-xs font-medium text-white shadow-sm hover:bg-sigap-700 focus:outline-none focus:ring-2 focus:ring-sigap-500 focus:ring-offset-2 transition-all">
+                                                Simpan Password Baru
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end">
+                            <button type="button" onclick="document.getElementById('profile-modal').classList.add('hidden')" class="inline-flex justify-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sigap-500 focus:ring-offset-2 transition-all">
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {{ else }}
+    <!-- Guest Layout -->
+    <div class="min-h-screen flex items-center justify-center bg-slate-900 bg-[url('/static/img/login-bg.png')] bg-cover bg-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        <!-- Background overlay for contrast -->
+        <div class="absolute inset-0 z-0 bg-slate-900/60 backdrop-blur-[2px]"></div>
+        
+        <div class="max-w-md w-full space-y-8 relative z-10 bg-white/95 backdrop-blur-xl p-8 rounded-2xl shadow-2xl shadow-slate-900/50 border border-white/20">
+            {{ embed }}
+        </div>
+    </div>
+    {{ end }}
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/static/js/app.js"></script>
+    
+    <script>
+        // Execute immediately (synchronously) to prevent FOUC (flicker) on load
+        (function() {
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('#sidebar nav a');
+            
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (!href || href === '/sos') return;
+                
+                // Add smooth transition classes if missing
+                if (!link.classList.contains('duration-300')) {
+                    link.classList.add('transition-all', 'duration-300');
+                }
+                
+                let isActive = false;
+                if (href === '/dashboard' || href === '/deliver') {
+                    isActive = currentPath === href;
+                } else {
+                    isActive = currentPath.startsWith(href);
+                }
+
+                if (isActive) {
+                    link.classList.remove('text-slate-300', 'hover:bg-slate-800', 'hover:text-white');
+                    link.classList.add('bg-slate-800', 'text-sigap-500', 'shadow-md', 'shadow-slate-900/20');
+                } else {
+                    link.classList.remove('bg-slate-800', 'text-sigap-500', 'shadow-md', 'shadow-slate-900/20');
+                    link.classList.add('text-slate-300', 'hover:bg-slate-800', 'hover:text-white');
+                }
+            });
+            
+            // Check for password change success
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('pwd_success')) {
+                alert('Password Anda berhasil diubah!');
+                // Clean up URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        })();
+    </script>
+
+    <!-- Notification System -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const badge   = document.getElementById('notif-badge');
+            const list    = document.getElementById('notif-list');
+            const empty   = document.getElementById('notif-empty');
+            const countLbl = document.getElementById('notif-count-label');
+            const dropdown = document.getElementById('notif-dropdown');
+            const wrapper  = document.getElementById('notif-wrapper');
+
+            // Only run for admin/relawan (elements exist)
+            if (!badge || !list) return;
+
+            let lastCount = -1;
+
+            function timeAgo(dateStr) {
+                const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+                if (diff < 60)  return 'Baru saja';
+                if (diff < 3600) return Math.floor(diff / 60) + ' menit lalu';
+                if (diff < 86400) return Math.floor(diff / 3600) + ' jam lalu';
+                return Math.floor(diff / 86400) + ' hari lalu';
+            }
+
+            function statusColor(s) {
+                if (s === 'pending') return 'bg-amber-100 text-amber-700';
+                if (s === 'process') return 'bg-blue-100 text-blue-700';
+                return 'bg-green-100 text-green-700';
+            }
+
+            function statusLabel(s) {
+                if (s === 'pending') return 'Menunggu';
+                if (s === 'process') return 'Diproses';
+                return 'Selesai';
+            }
+
+            function fetchNotifications() {
+                fetch('/api/notifications', { credentials: 'same-origin' })
+                    .then(r => r.json())
+                    .then(data => {
+                        const count = data.count || 0;
+                        const items = data.items || [];
+
+                        // Update badge
+                        if (count > 0) {
+                            badge.textContent = count > 99 ? '99+' : count;
+                            badge.classList.remove('hidden');
+                        } else {
+                            badge.classList.add('hidden');
+                        }
+
+                        // Update label
+                        if (countLbl) countLbl.textContent = count + ' baru';
+
+                        // Play subtle sound on new notification
+                        if (lastCount !== -1 && count > lastCount) {
+                            try { new Audio('data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAA...').play(); } catch(e) {}
+                        }
+                        lastCount = count;
+
+                        // Render list items
+                        // Remove old dynamic items (keep empty placeholder)
+                        list.querySelectorAll('.notif-item').forEach(el => el.remove());
+
+                        if (items.length === 0) {
+                            empty.classList.remove('hidden');
+                        } else {
+                            empty.classList.add('hidden');
+                            items.forEach(item => {
+                                const el = document.createElement('a');
+                                el.href = '/reports/' + item.id;
+                                el.className = 'notif-item flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors duration-150 cursor-pointer';
+                                el.innerHTML = `
+                                    <div class="mt-0.5 w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                                        <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-semibold text-slate-800 truncate">${escHtml(item.reporter_name)}</p>
+                                        <p class="text-xs text-slate-500 truncate mt-0.5">${escHtml(item.needs || 'Membutuhkan bantuan')}</p>
+                                        <div class="flex items-center gap-2 mt-1">
+                                            <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${statusColor(item.status)}">${statusLabel(item.status)}</span>
+                                            ${item.urgency_level === 'high' || item.urgency_level === 'critical' ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-600 text-white animate-pulse">URGENT</span>` : ''}
+                                            <span class="text-[10px] text-slate-400">${timeAgo(item.created_at)}</span>
+                                        </div>
+                                    </div>`;
+                                list.insertBefore(el, empty);
+                            });
+                            
+                            // Check for new emergencies
+                            const alertedEmergencies = JSON.parse(localStorage.getItem('alerted_emergencies_v5') || '[]');
+                            const popupEl = document.getElementById('emergency-popup');
+                            const isPopupVisible = popupEl && !popupEl.classList.contains('hidden');
+
+                            if (!isPopupVisible) {
+                                let firstEmergencyItem = null;
+                                let emergencyUniqueKey = null;
+
+                                for (const item of items) {
+                                    if (item.urgency_level === 'high' || item.urgency_level === 'critical') {
+                                        // Create a unique key using ID and created_at to avoid collisions if DB is reset
+                                        const uniqueKey = item.id + '_' + item.created_at;
+                                        if (!alertedEmergencies.includes(uniqueKey)) {
+                                            firstEmergencyItem = item;
+                                            emergencyUniqueKey = uniqueKey;
+                                            break; // Only take the first one
+                                        }
+                                    }
+                                }
+                                
+                                if (firstEmergencyItem) {
+                                    alertedEmergencies.push(emergencyUniqueKey);
+                                    // Keep only last 100 ids to prevent unbounded growth
+                                    if (alertedEmergencies.length > 100) alertedEmergencies.splice(0, alertedEmergencies.length - 100);
+                                    localStorage.setItem('alerted_emergencies_v5', JSON.stringify(alertedEmergencies));
+                                    
+                                    if (typeof window.showEmergencyPopup === 'function') {
+                                        window.showEmergencyPopup(firstEmergencyItem);
+                                    }
+                                }
+                            }
+                        }
+                    })
+                    .catch(() => {}); // silent fail
+            }
+
+            function escHtml(str) {
+                return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+            }
+
+            // Initial fetch + polling every 3s (real-time feel)
+            fetchNotifications();
+            setInterval(fetchNotifications, 3000);
+
+            // Toggle dropdown
+            window.toggleNotifDropdown = function() {
+                if (!dropdown) return;
+                dropdown.classList.toggle('hidden');
+                if (!dropdown.classList.contains('hidden')) {
+                    fetchNotifications(); // refresh on open
+                }
+            };
+
+            // Close on outside click
+            document.addEventListener('click', function(e) {
+                if (wrapper && !wrapper.contains(e.target)) {
+                    dropdown && dropdown.classList.add('hidden');
+                }
+            });
+            
+            // Emergency Popup Functions
+            window.closeEmergencyPopup = function() {
+                const popup = document.getElementById('emergency-popup');
+                const modal = document.getElementById('emergency-modal');
+                if (!popup || !modal) return;
+                modal.classList.remove('scale-100', 'opacity-100');
+                modal.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    popup.classList.add('hidden');
+                }, 300);
+            };
+
+            window.showEmergencyPopup = function(item) {
+                const reporterEl = document.getElementById('em-reporter');
+                const needsEl = document.getElementById('em-needs');
+                const actionBtn = document.getElementById('em-action-btn');
+                const popup = document.getElementById('emergency-popup');
+                const modal = document.getElementById('emergency-modal');
+                const urgencyLabel = document.getElementById('em-urgency-label');
+                
+                if (!popup || !modal) return;
+
+                if (reporterEl) reporterEl.textContent = 'Korban: ' + escHtml(item.reporter_name);
+                if (needsEl) needsEl.textContent = escHtml(item.needs || 'Membutuhkan bantuan segera');
+                if (actionBtn) actionBtn.href = '/reports/' + item.id;
+                if (urgencyLabel) {
+                    urgencyLabel.textContent = item.urgency_level === 'critical' ? 'DARURAT KRITIS!' : 'DARURAT TINGGI!';
+                }
+                
+                popup.classList.remove('hidden');
+                // Play loud alert sound if possible
+                try { 
+                    // High-pitch alert pattern
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(800, ctx.currentTime);
+                    osc.frequency.setValueAtTime(1200, ctx.currentTime + 0.1);
+                    osc.frequency.setValueAtTime(800, ctx.currentTime + 0.2);
+                    osc.frequency.setValueAtTime(1200, ctx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.8);
+                } catch(e) {}
+                
+                // trigger reflow
+                void popup.offsetWidth;
+                modal.classList.remove('scale-95', 'opacity-0');
+                modal.classList.add('scale-100', 'opacity-100');
+            };
+        });
+    </script>
+
+    <!-- Emergency Urgency Popup -->
+    <div id="emergency-popup" class="fixed inset-0 z-[9999] hidden flex items-center justify-center p-4">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity" onclick="closeEmergencyPopup()"></div>
+        <!-- Modal -->
+        <div class="relative w-full max-w-md bg-white rounded-3xl shadow-[0_0_50px_-12px_rgba(239,68,68,0.7)] border-2 border-red-500 overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="emergency-modal">
+            <!-- Pulsing emergency header -->
+            <div class="bg-gradient-to-br from-red-600 to-red-800 p-8 text-center relative overflow-hidden">
+                <div class="absolute inset-0 opacity-20 animate-[pulse_1s_infinite] bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMiIvPgo8cGF0aCBkPSJNMCAwbDhfOFpNOCAwTDBfOFoiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLW9wYWNpdHk9IjAuNiIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjwvc3ZnPg==')]"></div>
+                <div class="relative z-10 flex flex-col items-center justify-center">
+                    <div class="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-xl shadow-red-900/50 animate-bounce">
+                        <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <h2 class="text-2xl font-black text-white uppercase tracking-widest drop-shadow-md" id="em-urgency-label">DARURAT KRITIS!</h2>
+                    <p class="text-red-100 mt-2 font-medium text-sm drop-shadow-sm tracking-wide">Butuh Bantuan & Evakuasi Segera</p>
+                </div>
+            </div>
+            
+            <div class="p-8 bg-white">
+                <div class="text-center mb-8">
+                    <p class="text-xs font-bold text-red-500 uppercase tracking-widest mb-2" id="em-reporter">Korban: Anonim</p>
+                    <p class="text-xl text-slate-800 font-semibold leading-relaxed" id="em-needs">Membutuhkan bantuan segera</p>
+                </div>
+                
+                <div class="flex gap-4">
+                    <button onclick="closeEmergencyPopup()" class="flex-1 py-3.5 px-4 rounded-2xl text-slate-600 bg-slate-100 hover:bg-slate-200 font-bold transition-colors focus:outline-none focus:ring-4 focus:ring-slate-200">Abaikan</button>
+                    <a href="/reports" id="em-action-btn" class="flex-[2] py-3.5 px-4 rounded-2xl text-white bg-red-600 hover:bg-red-700 font-bold text-center transition-all shadow-lg shadow-red-500/40 hover:shadow-red-500/60 hover:-translate-y-0.5 flex items-center justify-center gap-2 focus:outline-none focus:ring-4 focus:ring-red-300">
+                        <span>Segera Tangani</span>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

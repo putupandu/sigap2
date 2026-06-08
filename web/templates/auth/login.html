@@ -1,0 +1,65 @@
+<div>
+    <div class="text-center">
+        <div class="mx-auto w-24 h-24 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-slate-100 p-3">
+            <img src="/static/img/logo.png" alt="SIGAP Logo" class="w-full h-full object-contain">
+        </div>
+        <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">SIGAP BENCANA</h2>
+        <p class="mt-2 text-sm text-slate-500">
+            Sistem Informasi Tanggap & Alert Pasca-Bencana
+        </p>
+    </div>
+
+    <div class="mt-6 mb-6">
+        <a href="/sos"
+            class="w-full flex items-center justify-center py-4 px-4 border border-transparent rounded-xl shadow-lg text-lg font-black text-white bg-red-600 hover:bg-red-700 hover:scale-105 transition-all animate-pulse shadow-red-500/50">
+            <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z">
+                </path>
+            </svg>
+            DARURAT? KIRIM SOS SEKARANG
+        </a>
+        <div class="relative flex items-center py-5">
+            <div class="flex-grow border-t border-slate-300"></div>
+            <span class="flex-shrink-0 mx-4 text-slate-400 text-sm">Atau masuk untuk petugas</span>
+            <div class="flex-grow border-t border-slate-300"></div>
+        </div>
+    </div>
+
+    {{ if .Error }}
+    <div class="mt-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-red-700">{{ .Error }}</p>
+            </div>
+        </div>
+    </div>
+    {{ end }}
+
+    <form class="mt-8 space-y-6" action="/login" method="POST">
+        <div class="space-y-4">
+            <div>
+                <label for="email" class="block text-sm font-medium text-slate-700">Email Address</label>
+                <input id="email" name="email" type="email" required
+                    class="mt-1 appearance-none rounded-lg relative block w-full px-3 py-2 border border-slate-300 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sigap-500 focus:border-sigap-500 focus:z-10 sm:text-sm transition-shadow">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-slate-700">Password</label>
+                <input id="password" name="password" type="password" required
+                    class="mt-1 appearance-none rounded-lg relative block w-full px-3 py-2 border border-slate-300 placeholder-slate-400 text-slate-900 focus:outline-none focus:ring-2 focus:ring-sigap-500 focus:border-sigap-500 focus:z-10 sm:text-sm transition-shadow">
+            </div>
+        </div>
+
+        <div>
+            <button type="submit"
+                class="group relative w-full flex justify-center py-2.5 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-sigap-600 hover:bg-sigap-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sigap-500 shadow-lg shadow-sigap-500/30 transition-all duration-200">
+                Sign in
+            </button>
+        </div>
+    </form>
+</div>

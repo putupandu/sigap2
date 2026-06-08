@@ -1,0 +1,124 @@
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Dashboard Utama</h1>
+        <div class="text-sm text-slate-500">
+            Real-time Disaster Overview
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-100 flex items-center">
+            <div class="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-slate-500">Total Laporan (SOS)</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ .TotalReports }}</h3>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-100 flex items-center">
+            <div class="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-slate-500">Sedang Diproses</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ .PendingReports }}</h3>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 border border-slate-100 flex items-center">
+            <div class="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <div class="ml-4">
+                <p class="text-sm font-medium text-slate-500">Selesai Ditangani</p>
+                <h3 class="text-2xl font-bold text-slate-900">{{ .CompletedReports }}</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Links -->
+    {{ if eq .User.Role "admin" }}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <a href="/tracking" class="bg-blue-600 hover:bg-blue-700 transition rounded-xl p-6 shadow-sm flex items-center justify-between text-white group">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold">Live Tracking Relawan</h3>
+                    <p class="text-blue-100 text-sm">Pantau pergerakan relawan secara real-time</p>
+                </div>
+            </div>
+            <svg class="w-6 h-6 transform group-hover:translate-x-2 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </a>
+
+        <a href="/verifications" class="bg-yellow-500 hover:bg-yellow-600 transition rounded-xl p-6 shadow-sm flex items-center justify-between text-white group">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mr-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold">Verifikasi Pengiriman</h3>
+                    <p class="text-yellow-100 text-sm">Tinjau foto bukti pengiriman dari relawan</p>
+                </div>
+            </div>
+            <svg class="w-6 h-6 transform group-hover:translate-x-2 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </a>
+    </div>
+    {{ end }}
+
+    <!-- Map Area -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+            <h3 class="font-semibold text-slate-800">Geospatial Dashboard - Hotspots Bencana</h3>
+        </div>
+        <div id="map" class="h-[400px] w-full z-0"></div>
+    </div>
+
+    <!-- Recent Reports -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <h3 class="font-semibold text-slate-800">Laporan Terbaru</h3>
+            <a href="/reports" class="text-sm text-sigap-600 hover:text-sigap-700 font-medium">Lihat Semua</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                    <tr>
+                        <th class="px-6 py-3 text-left tracking-wider">Waktu</th>
+                        <th class="px-6 py-3 text-left tracking-wider">Pelapor</th>
+                        <th class="px-6 py-3 text-left tracking-wider">Keterangan</th>
+                        <th class="px-6 py-3 text-left tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-right tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-100 text-sm">
+                    {{ range .RecentReports }}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-slate-500">{{ .CreatedAt.Format "02 Jan 2006 15:04" }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">{{ .User.Name }}</td>
+                        <td class="px-6 py-4 text-slate-500 truncate max-w-[200px]">{{ if .Description }}{{ .Description }}{{ else }}<span class="italic">Tanpa keterangan</span>{{ end }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {{ if eq .Status "pending" }}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Menunggu</span>
+                            {{ else if eq .Status "process" }}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Diproses</span>
+                            {{ else }}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Selesai</span>
+                            {{ end }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right font-medium">
+                            <a href="/reports/{{ .ID }}" class="text-sigap-600 hover:text-sigap-900">Detail</a>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/map.js?v=2"></script>

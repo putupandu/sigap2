@@ -1,0 +1,228 @@
+<div class="space-y-6">
+    <!-- Back Button + Title -->
+    <div class="flex items-center">
+        <a href="/tracking" class="mr-4 text-slate-400 hover:text-slate-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        </a>
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Tracking Pengiriman #{{ .Distribution.ID }}</h1>
+            <p class="mt-1 text-sm text-slate-500">Real-time monitoring pengiriman bantuan</p>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Info Panel -->
+        <div class="col-span-1 space-y-6">
+            <!-- Status Progress -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <h3 class="font-semibold text-slate-800 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                        Status Pengiriman
+                    </h3>
+                </div>
+                <div class="p-6">
+                    <!-- Progress Steps -->
+                    <div class="relative">
+                        {{ $status := .Distribution.Status }}
+                        <div class="flex items-center mb-6">
+                            <div class="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-200">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-semibold text-slate-900">Bantuan Dikirim</p>
+                                <p class="text-xs text-slate-400">{{ .Distribution.Timestamp.Format "02 Jan 2006 15:04" }}</p>
+                            </div>
+                        </div>
+                        <div class="absolute left-5 top-10 w-0.5 h-8 {{ if eq $status `delivering` }}bg-blue-300 animate-pulse{{ else }}bg-green-300{{ end }}"></div>
+
+                        <div class="flex items-center mb-6 mt-2">
+                            <div class="w-10 h-10 rounded-full {{ if eq $status `delivering` }}bg-blue-500 animate-pulse{{ else }}bg-green-500{{ end }} flex items-center justify-center text-white shadow-lg {{ if eq $status `delivering` }}shadow-blue-200{{ else }}shadow-green-200{{ end }}">
+                                {{ if eq $status "delivering" }}
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                                {{ else }}
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                {{ end }}
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-semibold text-slate-900">Dalam Perjalanan</p>
+                                <p class="text-xs text-slate-400">{{ if eq $status "delivering" }}Sedang menuju lokasi korban...{{ else }}Selesai{{ end }}</p>
+                            </div>
+                        </div>
+                        <div class="absolute left-5 top-[88px] w-0.5 h-8 {{ if or (eq $status `delivered`) (eq $status `verified`) }}bg-green-300{{ else }}bg-slate-200{{ end }}"></div>
+
+                        <div class="flex items-center mb-6 mt-2">
+                            <div class="w-10 h-10 rounded-full {{ if eq $status `delivered` }}bg-amber-500{{ else if eq $status `verified` }}bg-green-500{{ else }}bg-slate-200{{ end }} flex items-center justify-center text-white shadow-lg">
+                                {{ if or (eq $status "delivered") (eq $status "verified") }}
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                {{ else }}
+                                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                {{ end }}
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-semibold {{ if or (eq $status `delivered`) (eq $status `verified`) }}text-slate-900{{ else }}text-slate-400{{ end }}">Bantuan Diantar</p>
+                                <p class="text-xs text-slate-400">{{ if eq $status "delivered" }}Menunggu verifikasi admin{{ else if eq $status "verified" }}Terverifikasi{{ else }}Belum sampai{{ end }}</p>
+                            </div>
+                        </div>
+                        <div class="absolute left-5 top-[166px] w-0.5 h-8 {{ if eq $status `verified` }}bg-green-300{{ else }}bg-slate-200{{ end }}"></div>
+
+                        <div class="flex items-center mt-2">
+                            <div class="w-10 h-10 rounded-full {{ if eq $status `verified` }}bg-green-500{{ else }}bg-slate-200{{ end }} flex items-center justify-center text-white shadow-lg">
+                                {{ if eq $status "verified" }}
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                {{ else }}
+                                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                {{ end }}
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm font-semibold {{ if eq $status `verified` }}text-slate-900{{ else }}text-slate-400{{ end }}">Terverifikasi</p>
+                                <p class="text-xs text-slate-400">{{ if eq $status "verified" }}Bantuan dikonfirmasi diterima{{ else }}Menunggu{{ end }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Volunteer Info -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+                    <h3 class="font-semibold text-slate-800">Info Relawan</h3>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div class="flex items-center">
+                        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg mr-4">
+                            {{ if .Distribution.Volunteer.ID }}{{ slice .Distribution.Volunteer.Name 0 1 }}{{ else }}?{{ end }}
+                        </div>
+                        <div>
+                            <p class="font-semibold text-slate-900">{{ if .Distribution.Volunteer.ID }}{{ .Distribution.Volunteer.Name }}{{ else }}Unknown{{ end }}</p>
+                            {{ if .Distribution.Volunteer.Phone }}
+                            <a href="https://wa.me/{{ .Distribution.Volunteer.Phone }}" target="_blank" class="text-sm text-sigap-600 hover:underline flex items-center">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                {{ .Distribution.Volunteer.Phone }}
+                            </a>
+                            {{ end }}
+                        </div>
+                    </div>
+                    <div class="border-t border-slate-100 pt-4">
+                        <p class="text-xs text-slate-500 uppercase font-semibold">Barang Yang Diantar</p>
+                        <p class="text-sm font-medium text-slate-900 mt-1">{{ .Distribution.Logistic.ItemName }}</p>
+                        <p class="text-sm text-slate-500">{{ .Distribution.QuantitySent }} {{ .Distribution.Logistic.Unit }}</p>
+                    </div>
+                    <div class="border-t border-slate-100 pt-4">
+                        <p class="text-xs text-slate-500 uppercase font-semibold">Penerima</p>
+                        <p class="text-sm font-medium text-slate-900 mt-1">{{ if .Distribution.Report.ReporterName }}{{ .Distribution.Report.ReporterName }}{{ else if .Distribution.Report.User.ID }}{{ .Distribution.Report.User.Name }}{{ else }}Anonim{{ end }}</p>
+                        <a href="/reports/{{ .Distribution.Report.ID }}" class="text-xs text-sigap-600 hover:underline">Lihat Laporan #{{ .Distribution.Report.ID }}</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Photo Proof (if delivered) -->
+            {{ if .Distribution.ProofPhotoPath }}
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+                    <h3 class="font-semibold text-slate-800">📸 Foto Bukti Pengiriman</h3>
+                </div>
+                <div class="p-4">
+                    <img src="{{ .Distribution.ProofPhotoPath }}" alt="Bukti pengiriman" class="w-full rounded-lg shadow-sm border border-slate-200 cursor-pointer hover:opacity-90 transition" onclick="window.open(this.src, '_blank')">
+                </div>
+            </div>
+            {{ end }}
+        </div>
+
+        <!-- Map Detail -->
+        <div class="col-span-1 lg:col-span-2">
+            <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden h-full flex flex-col">
+                <div class="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-blue-50 flex justify-between items-center">
+                    <h3 class="font-semibold text-slate-800 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        Peta Live Tracking
+                    </h3>
+                    <div id="last-update" class="text-xs text-slate-400"></div>
+                </div>
+                <div id="detail-tracking-map" class="w-full flex-1 min-h-[500px]" style="z-index: 0;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const distID = parseInt("{{ .Distribution.ID }}", 10);
+    const destLat = parseFloat("{{ .Distribution.Report.Latitude }}");
+    const destLng = parseFloat("{{ .Distribution.Report.Longitude }}");
+    let volLat = parseFloat("{{ .Distribution.VolunteerLat }}") || destLat;
+    let volLng = parseFloat("{{ .Distribution.VolunteerLng }}") || destLng;
+
+    const map = L.map('detail-tracking-map').setView([volLat, volLng], 14);
+    L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '&copy; Google Maps'
+    }).addTo(map);
+
+    // Destination marker (red, static)
+    const destIcon = L.divIcon({
+        html: '<div style="background: linear-gradient(135deg, #ef4444, #b91c1c); width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 10px rgba(239,68,68,0.5); display: flex; align-items: center; justify-content: center;"><svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div>',
+        className: '',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+    });
+    const destMarker = L.marker([destLat, destLng], {icon: destIcon}).addTo(map)
+        .bindPopup('<b>📍 Lokasi Korban</b>');
+
+    // Volunteer marker (blue, animated)
+    const volIcon = L.divIcon({
+        html: `<div style="position:relative;">
+            <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); width: 36px; height: 36px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 10px rgba(59,130,246,0.5); display: flex; align-items: center; justify-content: center;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+            </div>
+            <div style="position:absolute; top:-4px; right:-4px; width:14px; height:14px; background:#22c55e; border-radius:50%; border:2px solid white; animation: pulse 1.5s infinite;"></div>
+        </div>`,
+        className: '',
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+    });
+    const volMarker = L.marker([volLat, volLng], {icon: volIcon}).addTo(map)
+        .bindPopup('<b>🚗 Relawan</b>');
+
+    // Route line
+    const routeLine = L.polyline([[volLat, volLng], [destLat, destLng]], {
+        color: '#3b82f6',
+        weight: 4,
+        opacity: 0.6,
+        dashArray: '10, 10'
+    }).addTo(map);
+
+    // Fit map to show both markers
+    map.fitBounds([[volLat, volLng], [destLat, destLng]], {padding: [80, 80]});
+
+    function updateLocation() {
+        fetch('/api/deliveries/' + distID + '/location')
+            .then(r => r.json())
+            .then(data => {
+                if (data.volunteer_lat && data.volunteer_lng) {
+                    volMarker.setLatLng([data.volunteer_lat, data.volunteer_lng]);
+                    routeLine.setLatLngs([[data.volunteer_lat, data.volunteer_lng], [destLat, destLng]]);
+                }
+                document.getElementById('last-update').textContent = 'Update: ' + new Date().toLocaleTimeString('id-ID');
+
+                // If status changed from delivering, show notification
+                if (data.status && data.status !== 'delivering') {
+                    clearInterval(updateInterval);
+                    document.getElementById('last-update').textContent = 'Pengiriman selesai - ' + data.status;
+                }
+            })
+            .catch(err => console.error('Location update error:', err));
+    }
+
+    updateLocation();
+    const updateInterval = setInterval(updateLocation, 5000);
+});
+</script>
+
+<style>
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+}
+</style>

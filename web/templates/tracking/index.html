@@ -1,0 +1,212 @@
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">🗺️ Live Tracking Relawan</h1>
+            <p class="mt-1 text-sm text-slate-500">Pantau posisi relawan yang sedang mengantar bantuan secara real-time.</p>
+        </div>
+        <div class="flex items-center space-x-2">
+            <span class="relative flex h-3 w-3">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            </span>
+            <span class="text-sm font-medium text-green-600" id="active-count">{{ len .Deliveries }} aktif</span>
+        </div>
+    </div>
+
+    <!-- Live Map -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-blue-50 flex justify-between items-center">
+            <h3 class="font-semibold text-slate-800 flex items-center">
+                <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Peta Tracking Real-time
+            </h3>
+            <button onclick="refreshMap()" class="inline-flex items-center px-3 py-1.5 border border-slate-300 rounded-lg text-xs font-medium text-slate-600 bg-white hover:bg-slate-50 shadow-sm">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                Refresh
+            </button>
+        </div>
+        <div id="tracking-map" class="w-full" style="height: 500px; z-index: 0;"></div>
+    </div>
+
+    <!-- Active Deliveries Table -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+            <h3 class="font-semibold text-slate-800">Pengiriman Aktif</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                    <tr>
+                        <th class="px-6 py-3 text-left tracking-wider">ID</th>
+                        <th class="px-6 py-3 text-left tracking-wider">Relawan</th>
+                        <th class="px-6 py-3 text-left tracking-wider">Penerima</th>
+                        <th class="px-6 py-3 text-left tracking-wider">Barang</th>
+                        <th class="px-6 py-3 text-left tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-right tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-100 text-sm" id="deliveries-tbody">
+                    {{ range .Deliveries }}
+                    <tr class="hover:bg-blue-50/50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap font-mono text-slate-500">#{{ .ID }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs mr-3">
+                                    {{ if .Volunteer.ID }}{{ slice .Volunteer.Name 0 1 }}{{ else }}?{{ end }}
+                                </div>
+                                <div>
+                                    <p class="font-medium text-slate-900">{{ if .Volunteer.ID }}{{ .Volunteer.Name }}{{ else }}Unknown{{ end }}</p>
+                                    <p class="text-xs text-slate-400">{{ if .Volunteer.ID }}{{ .Volunteer.Phone }}{{ end }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="text-slate-900">{{ if .Report.ReporterName }}{{ .Report.ReporterName }}{{ else if .Report.User.ID }}{{ .Report.User.Name }}{{ else }}Anonim{{ end }}</span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-slate-900">{{ .Logistic.ItemName }} <span class="text-slate-400">({{ .QuantitySent }} {{ .Logistic.Unit }})</span></td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                <span class="w-1.5 h-1.5 mr-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                                Dalam Perjalanan
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right">
+                            <a href="/tracking/{{ .ID }}" class="inline-flex items-center px-3 py-1.5 border border-blue-200 rounded-lg text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 transition">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                Detail
+                            </a>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+            {{ if not .Deliveries }}
+            <div class="text-center py-16">
+                <svg class="w-16 h-16 mx-auto text-slate-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                <p class="text-sm text-slate-500">Tidak ada pengiriman aktif saat ini.</p>
+                <p class="text-xs text-slate-400 mt-1">Pengiriman aktif akan muncul di sini secara real-time.</p>
+            </div>
+            {{ end }}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const map = L.map('tracking-map').setView([-6.2, 106.8], 10);
+    L.tileLayer('https://{s}.google.com/vt/lyrs=s,h&x={x}&y={y}&z={z}', {
+        maxZoom: 20,
+        subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+        attribution: '&copy; Google Maps'
+    }).addTo(map);
+
+    let markers = {};
+    let lines = {};
+
+    function createVolunteerIcon() {
+        return L.divIcon({
+            html: `<div style="position:relative;">
+                <div style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); width: 32px; height: 32px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 10px rgba(59,130,246,0.5); display: flex; align-items: center; justify-content: center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+                </div>
+                <div style="position:absolute; top:-6px; right:-6px; width:14px; height:14px; background:#22c55e; border-radius:50%; border:2px solid white; animation: pulse 1.5s infinite;"></div>
+            </div>`,
+            className: '',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16]
+        });
+    }
+
+    function createDestIcon() {
+        return L.divIcon({
+            html: `<div style="background: linear-gradient(135deg, #ef4444, #b91c1c); width: 28px; height: 28px; border-radius: 50%; border: 3px solid white; box-shadow: 0 3px 10px rgba(239,68,68,0.5); display: flex; align-items: center; justify-content: center;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </div>`,
+            className: '',
+            iconSize: [28, 28],
+            iconAnchor: [14, 14]
+        });
+    }
+
+    function updateMap() {
+        fetch('/api/deliveries/active')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('active-count').textContent = data.length + ' aktif';
+
+                // Track which IDs are still active
+                const activeIDs = new Set();
+
+                data.forEach(d => {
+                    activeIDs.add(d.id);
+                    const volLatLng = [d.volunteer_lat || d.dest_lat, d.volunteer_lng || d.dest_lng];
+                    const destLatLng = [d.dest_lat, d.dest_lng];
+
+                    if (markers[d.id]) {
+                        // Update existing marker position with smooth animation
+                        markers[d.id].vol.setLatLng(volLatLng);
+                        if (lines[d.id]) {
+                            lines[d.id].setLatLngs([volLatLng, destLatLng]);
+                        }
+                    } else {
+                        // Create new markers
+                        markers[d.id] = {
+                            vol: L.marker(volLatLng, {icon: createVolunteerIcon()})
+                                .addTo(map)
+                                .bindPopup(`<div style="min-width:180px"><b>🚗 ${d.volunteer_name}</b><br><small>${d.item_name} (${d.quantity_sent} ${d.unit})</small><br><small>📍 Tujuan: ${d.recipient_name}</small><br><a href="/tracking/${d.id}" style="color:#3b82f6;font-size:12px">Lihat Detail →</a></div>`),
+                            dest: L.marker(destLatLng, {icon: createDestIcon()})
+                                .addTo(map)
+                                .bindPopup(`<div><b>📍 ${d.recipient_name}</b><br><small>Report #${d.report_id}</small></div>`)
+                        };
+                        // Draw line between volunteer and destination
+                        lines[d.id] = L.polyline([volLatLng, destLatLng], {
+                            color: '#3b82f6',
+                            weight: 3,
+                            opacity: 0.6,
+                            dashArray: '10, 10'
+                        }).addTo(map);
+                    }
+                });
+
+                // Remove markers for completed deliveries
+                Object.keys(markers).forEach(id => {
+                    if (!activeIDs.has(parseInt(id))) {
+                        map.removeLayer(markers[id].vol);
+                        map.removeLayer(markers[id].dest);
+                        if (lines[id]) map.removeLayer(lines[id]);
+                        delete markers[id];
+                        delete lines[id];
+                    }
+                });
+
+                // Auto-fit map to show all markers
+                if (data.length > 0) {
+                    const allPoints = data.flatMap(d => [
+                        [d.volunteer_lat || d.dest_lat, d.volunteer_lng || d.dest_lng],
+                        [d.dest_lat, d.dest_lng]
+                    ]).filter(p => p[0] !== 0 && p[1] !== 0);
+                    if (allPoints.length > 0 && !window._mapFitted) {
+                        map.fitBounds(allPoints, {padding: [50, 50]});
+                        window._mapFitted = true;
+                    }
+                }
+            })
+            .catch(err => console.error('Tracking update error:', err));
+    }
+
+    // Initial load + auto-refresh every 5 seconds
+    updateMap();
+    setInterval(updateMap, 5000);
+    window.refreshMap = function() {
+        window._mapFitted = false;
+        updateMap();
+    };
+});
+</script>
+
+<style>
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+}
+</style>

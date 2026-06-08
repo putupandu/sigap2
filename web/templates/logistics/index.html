@@ -1,0 +1,48 @@
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Manajemen Logistik</h1>
+            <p class="mt-1 text-sm text-slate-500">Stok inventaris barang bantuan.</p>
+        </div>
+        <a href="/logistics/create" class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-sigap-600 hover:bg-sigap-700">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Tambah Barang
+        </a>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                    <tr>
+                        <th class="px-6 py-3 text-left tracking-wider">ID</th>
+                        <th class="px-6 py-3 text-left tracking-wider">Nama Barang</th>
+                        <th class="px-6 py-3 text-left tracking-wider">Stok Tersedia</th>
+                        <th class="px-6 py-3 text-left tracking-wider">Satuan</th>
+                        <th class="px-6 py-3 text-right tracking-wider">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-slate-100 text-sm">
+                    {{ range .Logistics }}
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap text-slate-500 font-mono">#{{ .ID }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap font-medium text-slate-900">{{ .ItemName }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap font-medium {{ if le .Quantity 10 }}text-red-600{{ else }}text-green-600{{ end }}">{{ .Quantity }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-slate-500">{{ .Unit }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            {{ if eq $.User.Role "admin" }}
+                            <form action="/logistics/{{ .ID }}/delete" method="POST" class="inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus barang ini?');">
+                                <button type="submit" class="text-red-500 hover:text-red-700 font-semibold flex items-center inline-flex">
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    Hapus
+                                </button>
+                            </form>
+                            {{ end }}
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

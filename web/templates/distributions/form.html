@@ -1,0 +1,142 @@
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex items-center">
+        <a href="/distributions" class="mr-4 text-slate-400 hover:text-slate-600">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        </a>
+        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Kirim Bantuan Logistik</h1>
+    </div>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+        <form action="/distributions" method="POST" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-700">Pilih Laporan SOS (Penerima)</label>
+                <select name="report_id" required class="mt-1 block w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-sigap-500 focus:border-sigap-500 sm:text-sm bg-white">
+                    <option value="">-- Pilih Laporan --</option>
+                    {{ range .Reports }}
+                    <option value="{{ .ID }}" {{ if eq (printf "%d" .ID) $.SelectedReportID }}selected{{ end }}>#{{ .ID }} - {{ if .ReporterName }}{{ .ReporterName }}{{ else if .User.ID }}{{ .User.Name }}{{ else }}Anonim{{ end }} (Status: {{ .Status }})</option>
+                    {{ end }}
+                </select>
+                {{ if not .Reports }}
+                <p class="mt-1 text-xs text-red-500">Tidak ada laporan yang membutuhkan bantuan saat ini.</p>
+                {{ end }}
+            </div>
+
+            {{ if eq .User.Role "admin" }}
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mt-4">Tugaskan ke Relawan</label>
+                <select name="volunteer_id" required class="mt-1 block w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-sigap-500 focus:border-sigap-500 sm:text-sm bg-white">
+                    <option value="">-- Pilih Relawan --</option>
+                    {{ range .Volunteers }}
+                    <option value="{{ .ID }}">{{ .Name }} ({{ .Phone }})</option>
+                    {{ end }}
+                </select>
+                {{ if not .Volunteers }}
+                <p class="mt-1 text-xs text-red-500">Tidak ada relawan yang terdaftar.</p>
+                {{ end }}
+            </div>
+            {{ end }}
+
+            {{ if .EvacuationOnly }}
+            <div class="p-4 bg-red-50 border border-red-100 rounded-lg text-red-800">
+                <p class="text-sm font-semibold mb-1">Mode Evakuasi Darurat Aktif</p>
+                <p class="text-xs">Korban tidak meminta barang logistik, melainkan evakuasi/penyelamatan langsung. Penugasan ini akan mengerahkan Tim Evakuasi Darurat ke lokasi.</p>
+                <input type="hidden" name="logistic_id[]" value="{{ .EvacItemID }}">
+                <input type="hidden" name="quantity[]" value="1">
+            </div>
+            {{ else }}
+            <div class="border-t border-slate-100 pt-4 mt-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-semibold text-slate-800">Daftar Logistik</h3>
+                    <button type="button" id="add-logistic-btn" class="inline-flex items-center px-3 py-1.5 border border-sigap-600 rounded-md shadow-sm text-xs font-medium text-sigap-600 bg-white hover:bg-sigap-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sigap-500">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Tambah Barang
+                    </button>
+                </div>
+
+                <div id="logistics-container" class="space-y-4">
+                    <!-- Template Row -->
+                    <div class="logistic-row flex flex-col sm:flex-row sm:items-end gap-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                        <div class="flex-1">
+                            <label class="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Pilih Barang Logistik</label>
+                            <select name="logistic_id[]" required class="block w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-sigap-500 focus:border-sigap-500 sm:text-sm bg-white">
+                                <option value="">-- Pilih Barang --</option>
+                                {{ range .Logistics }}
+                                {{ if gt .Quantity 0 }}
+                                <option value="{{ .ID }}">{{ .ItemName }} (Stok: {{ .Quantity }} {{ .Unit }})</option>
+                                {{ end }}
+                                {{ end }}
+                            </select>
+                        </div>
+                        
+                        <div class="w-full sm:w-32">
+                            <label class="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Jumlah</label>
+                            <input name="quantity[]" type="number" min="1" required class="block w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-sigap-500 focus:border-sigap-500 sm:text-sm">
+                        </div>
+
+                        <div class="pt-2 sm:pt-0 sm:pb-1">
+                            <button type="button" class="remove-logistic-btn w-full sm:w-auto inline-flex justify-center items-center px-3 py-2 border border-red-200 rounded-md shadow-sm text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                <span class="sm:hidden ml-2">Hapus Baris</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{ end }}
+
+            <div class="pt-4 border-t border-slate-100 flex justify-end">
+                {{ if .EvacuationOnly }}
+                <button type="submit" class="px-6 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    Kirim Tim Evakuasi
+                </button>
+                {{ else }}
+                <button type="submit" class="px-6 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-sigap-600 hover:bg-sigap-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sigap-500">
+                    Kirim Bantuan
+                </button>
+                {{ end }}
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('logistics-container');
+    const addButton = document.getElementById('add-logistic-btn');
+    
+    // Disable remove button if only one row exists
+    function updateRemoveButtons() {
+        const rows = container.querySelectorAll('.logistic-row');
+        const btns = container.querySelectorAll('.remove-logistic-btn');
+        if (rows.length === 1) {
+            btns[0].disabled = true;
+        } else {
+            btns.forEach(btn => btn.disabled = false);
+        }
+    }
+
+    // Add new row
+    addButton.addEventListener('click', function() {
+        const firstRow = container.querySelector('.logistic-row');
+        const newRow = firstRow.cloneNode(true);
+        
+        // Clear input values
+        newRow.querySelector('select').value = '';
+        newRow.querySelector('input').value = '';
+        
+        container.appendChild(newRow);
+        updateRemoveButtons();
+    });
+
+    // Remove row (Event Delegation)
+    container.addEventListener('click', function(e) {
+        const removeBtn = e.target.closest('.remove-logistic-btn');
+        if (removeBtn && !removeBtn.disabled) {
+            removeBtn.closest('.logistic-row').remove();
+            updateRemoveButtons();
+        }
+    });
+
+    updateRemoveButtons();
+});
+</script>

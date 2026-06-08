@@ -1,0 +1,56 @@
+<div>
+    <div class="text-center">
+        <div class="mx-auto w-24 h-24 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-slate-100 p-3">
+            <img src="/static/img/logo.png" alt="SIGAP Logo" class="w-full h-full object-contain">
+        </div>
+        <h2 class="text-3xl font-extrabold text-slate-900 tracking-tight">Daftar Akun Baru</h2>
+        <p class="mt-2 text-sm text-slate-500">
+            Bergabung dengan SIGAP
+        </p>
+    </div>
+
+    {{ if .Error }}
+    <div class="mt-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+        <p class="text-sm text-red-700">{{ .Error }}</p>
+    </div>
+    {{ end }}
+
+    <form class="mt-8 space-y-4" action="/register" method="POST">
+        <div>
+            <label class="block text-sm font-medium text-slate-700">Nama Lengkap</label>
+            <input name="name" type="text" required
+                class="mt-1 block w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-sigap-500 focus:border-sigap-500 sm:text-sm">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700">Email</label>
+            <input name="email" type="email" required
+                class="mt-1 block w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-sigap-500 focus:border-sigap-500 sm:text-sm">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700">No. WhatsApp</label>
+            <input name="phone" type="text" required
+                class="mt-1 block w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-sigap-500 focus:border-sigap-500 sm:text-sm">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-slate-700">Password</label>
+            <input name="password" type="password" required
+                class="mt-1 block w-full px-3 py-2 rounded-lg border border-slate-300 focus:ring-sigap-500 focus:border-sigap-500 sm:text-sm">
+        </div>
+
+
+        <div class="flex items-center justify-between pt-2">
+            <div class="text-sm">
+                <a href="/login" class="font-medium text-sigap-600 hover:text-sigap-500">
+                    Sudah punya akun? Login
+                </a>
+            </div>
+        </div>
+
+        <div>
+            <button type="submit"
+                class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 transition-colors">
+                Daftar Sekarang
+            </button>
+        </div>
+    </form>
+</div>

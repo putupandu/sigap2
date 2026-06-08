@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - sigap_net
+    # Override database env vars to connect to the docker mysql container
+    # instead of the Laragon local database. Other vars (like Gemini keys)
+    # will be pulled from the .env file automatically.
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=mysql
+      - DB_USER=sigap
+      - DB_PASS=sigap_secret
+      - DB_NAME=sigap2
+    volumes:
+      - ./web:/root/web
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: sigap2
+      MYSQL_USER: sigap
+      MYSQL_PASSWORD: sigap_secret
+      MYSQL_ROOT_PASSWORD: root_secret
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - sigap_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  sigap_net:
+    driver: bridge
+
+volumes:
+  mysql_data:

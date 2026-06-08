@@ -1,0 +1,102 @@
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Verifikasi Pengiriman</h1>
+            <p class="mt-1 text-sm text-slate-500">Tinjau foto bukti pengiriman dari relawan dan konfirmasi status bantuan.</p>
+        </div>
+        <div class="flex space-x-3">
+            <div class="bg-yellow-50 text-yellow-700 px-4 py-2 rounded-lg text-sm font-medium border border-yellow-200">
+                <span class="font-bold">{{ len .PendingVerifications }}</span> Menunggu Verifikasi
+            </div>
+        </div>
+    </div>
+
+    <!-- Verifications List -->
+    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+            <h3 class="font-semibold text-slate-800">Daftar Menunggu Verifikasi</h3>
+        </div>
+        
+        {{ if .PendingVerifications }}
+        <ul class="divide-y divide-slate-100">
+            {{ range .PendingVerifications }}
+            <li class="p-6 hover:bg-slate-50 transition-colors">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    
+                    <!-- Detail Info -->
+                    <div class="col-span-1 space-y-4">
+                        <div>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 mb-2">
+                                Menunggu Verifikasi
+                            </span>
+                            <h4 class="text-lg font-bold text-slate-900">#{{ .ID }} - {{ .Logistic.ItemName }}</h4>
+                            <p class="text-sm text-slate-500">{{ .QuantitySent }} {{ .Logistic.Unit }}</p>
+                        </div>
+                        
+                        <div class="bg-slate-50 rounded-lg p-3 border border-slate-100 space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Relawan:</span>
+                                <span class="font-medium text-slate-900">{{ if .Volunteer.ID }}{{ .Volunteer.Name }}{{ else }}Unknown{{ end }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Penerima:</span>
+                                <span class="font-medium text-slate-900">{{ if .Report.ReporterName }}{{ .Report.ReporterName }}{{ else if .Report.User.ID }}{{ .Report.User.Name }}{{ else }}Anonim{{ end }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-500">Waktu Lapor:</span>
+                                <span class="font-medium text-slate-900">{{ .UpdatedAt.Format "02 Jan 2006, 15:04" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Foto Bukti -->
+                    <div class="col-span-1 flex flex-col justify-center">
+                        <p class="text-xs font-medium text-slate-500 mb-2 uppercase tracking-wider">Foto Bukti</p>
+                        {{ if .ProofPhotoPath }}
+                        <a href="{{ .ProofPhotoPath }}" target="_blank" class="block relative group overflow-hidden rounded-lg border border-slate-200">
+                            <img src="{{ .ProofPhotoPath }}" alt="Bukti Pengiriman" class="w-full h-48 object-cover group-hover:scale-105 transition duration-300">
+                            <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition flex items-center justify-center">
+                                <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+                            </div>
+                        </a>
+                        {{ else }}
+                        <div class="w-full h-48 bg-slate-100 rounded-lg border border-slate-200 flex items-center justify-center">
+                            <span class="text-slate-400 text-sm">Tidak ada foto</span>
+                        </div>
+                        {{ end }}
+                    </div>
+                    
+                    <!-- Action Form -->
+                    <div class="col-span-1 border-l border-slate-100 pl-6 flex flex-col justify-center">
+                        <form action="/verifications/{{ .ID }}" method="POST" class="space-y-4">
+                            <div>
+                                <label for="notes-{{ .ID }}" class="block text-sm font-medium text-slate-700 mb-1">Catatan Verifikasi (Opsional)</label>
+                                <textarea id="notes-{{ .ID }}" name="notes" rows="3" class="w-full rounded-lg border-slate-300 shadow-sm focus:border-sigap-500 focus:ring-sigap-500 text-sm" placeholder="Tambahkan catatan jika perlu..."></textarea>
+                            </div>
+                            
+                            <div class="flex space-x-3">
+                                <button type="submit" name="action" value="approve" class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition">
+                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                    Setujui
+                                </button>
+                                <button type="submit" name="action" value="reject" class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition" onclick="return confirm('Apakah Anda yakin ingin menolak bukti pengiriman ini? Status akan dikembalikan menjadi Dalam Perjalanan.')">
+                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    Tolak
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                </div>
+            </li>
+            {{ end }}
+        </ul>
+        {{ else }}
+        <div class="p-12 text-center">
+            <svg class="mx-auto h-16 w-16 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <h3 class="mt-4 text-lg font-medium text-slate-900">Semua Beres!</h3>
+            <p class="mt-2 text-slate-500">Tidak ada pengiriman yang menunggu verifikasi saat ini.</p>
+        </div>
+        {{ end }}
+    </div>
+</div>

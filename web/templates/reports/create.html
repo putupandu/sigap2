@@ -1,0 +1,121 @@
+<div class="max-w-2xl mx-auto space-y-8">
+    <div class="text-center">
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Kirim Sinyal SOS</h1>
+        <p class="mt-2 text-slate-500">
+            Tekan tombol di bawah ini untuk mengirimkan lokasi darurat Anda kepada tim relawan. Pastikan GPS/Lokasi
+            perangkat Anda aktif.
+        </p>
+    </div>
+
+    <div
+        class="bg-white p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col items-center justify-center space-y-8 relative overflow-hidden">
+
+        <!-- SOS Button Container -->
+        <div class="relative flex items-center justify-center w-64 h-64">
+            <!-- Ripple Effect Background (Active during SOS) -->
+            <div id="sos-ripple" class="absolute inset-0 z-0 hidden flex items-center justify-center">
+                <div class="absolute w-32 h-32 bg-red-500 rounded-full animate-ping opacity-75"></div>
+                <div class="absolute w-48 h-48 bg-red-400 rounded-full animate-ping opacity-50"
+                    style="animation-delay: 0.2s"></div>
+                <div class="absolute w-64 h-64 bg-red-300 rounded-full animate-ping opacity-25"
+                    style="animation-delay: 0.4s"></div>
+            </div>
+
+            <!-- The actual Button -->
+            <button id="btn-sos"
+                class="relative z-10 w-48 h-48 bg-gradient-to-br from-red-500 to-red-700 rounded-full shadow-2xl shadow-red-600/50 flex flex-col items-center justify-center text-white transform transition hover:scale-105 active:scale-95 border-4 border-red-400">
+                <svg class="w-16 h-16 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                <span class="text-3xl font-black tracking-widest">SOS</span>
+            </button>
+        </div>
+
+        <div class="w-full relative z-10 space-y-4 text-left">
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Nama Anda</label>
+                <input type="text" id="sos-name"
+                    class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-red-500 focus:border-red-500 sm:text-sm bg-slate-50"
+                    placeholder="Masukkan nama Anda (misal: Budi)">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-2">Apa yang Dibutuhkan? <span
+                        class="text-slate-400 font-normal">(pilih satu atau lebih)</span></label>
+                <div id="sos-needs-grid" class="grid grid-cols-2 gap-2">
+                    <label class="needs-option group cursor-pointer">
+                        <input type="checkbox" value="Makanan" class="sr-only needs-checkbox">
+                        <div
+                            class="flex items-center px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-slate-50 transition-all duration-200 group-hover:border-red-300 group-hover:bg-red-50">
+                            <span class="text-xl mr-2">🍚</span>
+                            <span class="text-sm font-medium text-slate-700">Makanan</span>
+                        </div>
+                    </label>
+                    <label class="needs-option group cursor-pointer">
+                        <input type="checkbox" value="Air Bersih" class="sr-only needs-checkbox">
+                        <div
+                            class="flex items-center px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-slate-50 transition-all duration-200 group-hover:border-red-300 group-hover:bg-red-50">
+                            <span class="text-xl mr-2">💧</span>
+                            <span class="text-sm font-medium text-slate-700">Air Bersih</span>
+                        </div>
+                    </label>
+                    <label class="needs-option group cursor-pointer">
+                        <input type="checkbox" value="Obat-obatan" class="sr-only needs-checkbox">
+                        <div
+                            class="flex items-center px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-slate-50 transition-all duration-200 group-hover:border-red-300 group-hover:bg-red-50">
+                            <span class="text-xl mr-2">💊</span>
+                            <span class="text-sm font-medium text-slate-700">Obat-obatan</span>
+                        </div>
+                    </label>
+                    <label class="needs-option group cursor-pointer">
+                        <input type="checkbox" value="Evakuasi" class="sr-only needs-checkbox">
+                        <div
+                            class="flex items-center px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-slate-50 transition-all duration-200 group-hover:border-red-300 group-hover:bg-red-50">
+                            <span class="text-xl mr-2">🚁</span>
+                            <span class="text-sm font-medium text-slate-700">Evakuasi</span>
+                        </div>
+                    </label>
+                    <label class="needs-option group cursor-pointer">
+                        <input type="checkbox" value="Pakaian & Selimut" class="sr-only needs-checkbox">
+                        <div
+                            class="flex items-center px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-slate-50 transition-all duration-200 group-hover:border-red-300 group-hover:bg-red-50">
+                            <span class="text-xl mr-2">🧥</span>
+                            <span class="text-sm font-medium text-slate-700">Pakaian & Selimut</span>
+                        </div>
+                    </label>
+                    <label class="needs-option group cursor-pointer">
+                        <input type="checkbox" value="Pertolongan Medis" class="sr-only needs-checkbox">
+                        <div
+                            class="flex items-center px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-slate-50 transition-all duration-200 group-hover:border-red-300 group-hover:bg-red-50">
+                            <span class="text-xl mr-2">🏥</span>
+                            <span class="text-sm font-medium text-slate-700">Pertolongan Medis</span>
+                        </div>
+                    </label>
+                    <label class="needs-option group cursor-pointer">
+                        <input type="checkbox" value="Lainnya" class="sr-only needs-checkbox" id="needs-other-checkbox">
+                        <div
+                            class="flex items-center px-3 py-2.5 rounded-xl border-2 border-slate-200 bg-slate-50 transition-all duration-200 group-hover:border-red-300 group-hover:bg-red-50">
+                            <span class="text-xl mr-2">📝</span>
+                            <span class="text-sm font-medium text-slate-700">Lainnya...</span>
+                        </div>
+                    </label>
+                </div>
+                <input type="text" id="sos-needs-other"
+                    class="hidden w-full mt-2 px-4 py-3 rounded-lg border border-slate-300 focus:ring-red-500 focus:border-red-500 sm:text-sm bg-slate-50"
+                    placeholder="Tulis kebutuhan lainnya...">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Keterangan Kondisi Saat Ini</label>
+                <textarea id="sos-desc" rows="3"
+                    class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-red-500 focus:border-red-500 sm:text-sm bg-slate-50"
+                    placeholder="Misal: Terjebak di atap karena banjir setinggi 2 meter..."></textarea>
+            </div>
+
+            <div id="sos-status" class="hidden text-center p-4 rounded-lg">
+                <!-- Status text will be injected via JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="/static/js/sos.js?v=2"></script>
