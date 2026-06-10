@@ -14,6 +14,10 @@ func CreateReport(reporterName, needs string, lat, lng float64, desc string) err
 		extractedData = "[]"
 	}
 
+	if urgency == "irrelevant" {
+		return fmt.Errorf("Laporan ditolak: Keterangan tidak berhubungan dengan bencana atau keadaan darurat.")
+	}
+
 	report := models.Report{
 		ReporterName:  reporterName,
 		Needs:         needs,

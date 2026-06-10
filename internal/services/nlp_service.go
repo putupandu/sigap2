@@ -276,7 +276,7 @@ func AnalyzeReport(description string, needs string) (string, string, error) {
 	prompt := fmt.Sprintf(`Kamu adalah AI untuk sistem tanggap darurat bencana Indonesia. Tugasmu menganalisis teks dari korban bencana.
 
 TUGAS (WAJIB DIKERJAKAN SEMUA):
-1. Tentukan tingkat urgensi. WAJIB isi salah satu: "low", "medium", "high", "critical"
+1. Tentukan tingkat urgensi. WAJIB isi salah satu: "irrelevant", "low", "medium", "high", "critical"
 2. Ekstrak SEMUA barang/kebutuhan fisik dari teks ke dalam array "items". Ini SANGAT PENTING!
 
 === ATURAN EKSTRAKSI KEBUTUHAN ===
@@ -288,10 +288,16 @@ TUGAS (WAJIB DIKERJAKAN SEMUA):
 - JANGAN pernah return items kosong jika ada penyebutan barang dalam teks!
 
 === ATURAN URGENSI ===
+- "irrelevant" = Jika teks TIDAK berhubungan sama sekali dengan bencana, kecelakaan berat, atau permintaan bantuan darurat (contoh: jalanan macet biasa, curhatan, pesan spam, tanya jalan, dll).
 - "critical" = nyawa terancam langsung (terjebak, tenggelam, kebakaran, luka parah)
 - "high" = kondisi serius (di pengungsian, banjir, kelaparan, lansia/bayi butuh bantuan)
 - "medium" = butuh bantuan tapi aman (minta logistik biasa)
 - "low" = tidak mendesak (laporan info saja)
+
+=== CONTOH ===
+
+Teks: "terminal raja basa penuh dengan penumpang macet total tidak bisa jalan"
+Jawaban: {"urgency":"irrelevant","items":[]}
 
 === CONTOH ===
 
@@ -380,7 +386,7 @@ Jawab HANYA JSON! Jangan lupa ekstrak SEMUA barang!`, combinedText)
 	// Normalize urgency
 	result.Urgency = strings.ToLower(strings.TrimSpace(result.Urgency))
 	validUrgency := false
-	for _, u := range []string{"low", "medium", "high", "critical"} {
+	for _, u := range []string{"irrelevant", "low", "medium", "high", "critical"} {
 		if result.Urgency == u {
 			validUrgency = true
 			break
@@ -389,6 +395,11 @@ Jawab HANYA JSON! Jangan lupa ekstrak SEMUA barang!`, combinedText)
 	if !validUrgency {
 		fmt.Printf("[NLP] Invalid urgency from AI: %q, falling back\n", result.Urgency)
 		result.Urgency = "medium"
+	}
+
+	if result.Urgency == "irrelevant" {
+		fmt.Println("[NLP] AI detected irrelevant report, rejecting.")
+		return "irrelevant", "[]", nil
 	}
 
 	fmt.Printf("[NLP] AI urgency: %q, Keyword urgency: %q\n", result.Urgency, keywordUrgency)
@@ -414,10 +425,11 @@ Jawab HANYA JSON! Jangan lupa ekstrak SEMUA barang!`, combinedText)
 // higherUrgency returns whichever urgency level is more severe
 func higherUrgency(a, b string) string {
 	order := map[string]int{
-		"low":      0,
-		"medium":   1,
-		"high":     2,
-		"critical": 3,
+		"irrelevant": -1,
+		"low":        0,
+		"medium":     1,
+		"high":       2,
+		"critical":   3,
 	}
 
 	scoreA := order[a]

@@ -22,6 +22,12 @@ func CreateReport(c *fiber.Ctx) error {
 
 	err := services.CreateReport(reporterName, needs, lat, lng, desc)
 	if err != nil {
+		if err.Error() == "Laporan ditolak: Keterangan tidak berhubungan dengan bencana atau keadaan darurat." {
+			if c.Accepts("json") == "json" || c.Get("X-Requested-With") == "XMLHttpRequest" {
+				return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+			}
+			return c.Redirect("/sos?error=irrelevant")
+		}
 		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
 	}
 
