@@ -82,14 +82,14 @@ func CheckIfIrrelevantML(text string) bool {
 	fmt.Printf("[ML] Irrelevant Prob: %.2f%%, Disaster Prob: %.2f%%\n", scores[0]*100, scores[1]*100)
 
 	// likely == 0 berarti model memilih "Irrelevant"
-	if likely == 0 && scores[0] > 0.60 {
-		fmt.Println("[ML] REJECTED: Teks terdeteksi sebagai Irrelevant (>60%)")
+	if likely == 0 && scores[0] >= 0.50 {
+		fmt.Println("[ML] REJECTED: Teks terdeteksi sebagai Irrelevant (>=50%)")
 		return true
 	}
 
-	// Atau jika probabilitas irrelevant di atas 70% walaupun bukan likely utama (edge case, meski jarang)
-	if scores[0] > 0.70 {
-		fmt.Println("[ML] REJECTED: Probabilitas Irrelevant sangat tinggi (>70%)")
+	// Atau jika probabilitas irrelevant di atas 55% walaupun bukan likely utama (edge case, meski jarang)
+	if scores[0] > 0.55 {
+		fmt.Println("[ML] REJECTED: Probabilitas Irrelevant sangat tinggi (>55%)")
 		return true
 	}
 

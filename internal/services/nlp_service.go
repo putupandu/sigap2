@@ -14,8 +14,10 @@ import (
 )
 
 type NLPResult struct {
-	Urgency string    `json:"urgency"`
-	Items   []NLPItem `json:"items"`
+	IsDisasterRelated bool      `json:"is_disaster_related"`
+	Reason            string    `json:"reason"`
+	Urgency           string    `json:"urgency"`
+	Items             []NLPItem `json:"items"`
 }
 
 type NLPItem struct {
@@ -47,19 +49,10 @@ func detectSpamLeksikal(description, needs string) bool {
 
 // detectUrgencyByKeywords uses keyword matching to determine urgency level.
 // This serves as a reliable fallback when AI analysis fails or returns incorrect results.
+// NOTE: Irrelevant detection is now handled by the ML Classifier (classifier.go).
 func detectUrgencyByKeywords(description string, needs string) string {
 	combined := strings.ToLower(description + " " + needs)
 
-	// IRRELEVANT keywords: explicitly mark as not a disaster (useful for regex fallback)
-	irrelevantKeywords := []string{
-		"macet", "terminal", "penumpang", "stasiun", "kereta",
-		"curhat", "spam", "coba-coba", "ngetes",
-	}
-	for _, kw := range irrelevantKeywords {
-		if strings.Contains(combined, kw) {
-			return "irrelevant"
-		}
-	}
 
 	// CRITICAL keywords: life-threatening, trapped, need immediate rescue
 	criticalKeywords := []string{
@@ -312,59 +305,64 @@ func AnalyzeReport(description string, needs string) (string, string, error) {
 		combinedText = combinedText + "\nKebutuhan tambahan: " + strings.TrimSpace(needs)
 	}
 
-	prompt := fmt.Sprintf(`Kamu adalah AI untuk sistem tanggap darurat bencana Indonesia. Tugasmu menganalisis teks dari korban bencana.
+	prompt := fmt.Sprintf(`Kamu adalah AI SATPAM SUPER KETAT untuk sistem tanggap darurat bencana Indonesia (SIGAP).
+Aplikasi ini HANYA untuk melaporkan BENCANA ALAM dan KEADAAN DARURAT.
 
-TUGAS (WAJIB DIKERJAKAN SEMUA):
-1. Tentukan tingkat urgensi. WAJIB isi salah satu: "irrelevant", "low", "medium", "high", "critical"
-2. Ekstrak SEMUA barang/kebutuhan fisik dari teks ke dalam array "items". Ini SANGAT PENTING!
+=== TUGAS UTAMA: VALIDASI KONTEKS BENCANA ===
+Langkah 1: Tentukan apakah teks ini BENAR-BENAR berhubungan dengan bencana/keadaan darurat.
+- Set "is_disaster_related" = true HANYA jika teks menyebutkan konteks bencana alam (banjir, gempa, longsor, kebakaran, tsunami, angin puting beliung), kecelakaan berat, situasi darurat di posko/pengungsian, atau permintaan bantuan logistik untuk korban bencana.
+- Set "is_disaster_related" = false jika teks adalah: curhatan pribadi, keluhan sehari-hari (lapar biasa, panas, capek, bosan), pesan iseng/spam, tes sistem, kata-kata kasar, obrolan biasa, atau APAPUN yang tidak ada hubungannya dengan bencana/darurat.
+- WAJIB isi "reason" dengan penjelasan singkat mengapa kamu memutuskan true/false.
+
+Langkah 2: Jika is_disaster_related = false, WAJIB set urgency = "irrelevant" dan items = [].
+Langkah 3: Jika is_disaster_related = true, tentukan urgensi dan ekstrak kebutuhan.
+
+=== ATURAN SUPER KETAT ===
+- Kata "lapar"/"laper"/"kelaparan" TANPA konteks bencana = IRRELEVANT (orang biasa juga lapar).
+- Kata "sakit"/"pusing"/"demam" TANPA konteks bencana = IRRELEVANT (sakit biasa bukan darurat bencana).
+- Kata "tolong" TANPA konteks bencana = IRRELEVANT (bisa saja "tolong belikan makanan").
+- Nama orang + keluhan pribadi ("ocha laper", "pandu jahat") = IRRELEVANT.
+- Jika RAGU, pilih IRRELEVANT. Lebih baik menolak daripada meloloskan spam.
+
+=== ATURAN URGENSI (hanya jika is_disaster_related = true) ===
+- "critical" = nyawa terancam langsung (terjebak, tenggelam, kebakaran aktif, luka parah)
+- "high" = kondisi serius (di pengungsian, banjir merendam, kelaparan di posko, lansia/bayi butuh bantuan)
+- "medium" = butuh bantuan tapi aman (minta logistik untuk korban bencana)
+- "low" = tidak mendesak (laporan informasi situasi bencana saja)
 
 === ATURAN EKSTRAKSI KEBUTUHAN ===
-- WAJIB scan seluruh teks kata per kata dan temukan SEMUA barang yang disebutkan
+- WAJIB scan seluruh teks dan temukan SEMUA barang yang disebutkan
 - Jika ada angka di dekat nama barang, itu adalah jumlahnya
 - Jika tidak ada angka, tulis quantity "sesuai kebutuhan"
-- Bahasa korban bencana sering tidak formal, tidak pakai koma, tidak pakai titik. Tetap harus diekstrak!
-- Contoh kata yang HARUS diekstrak: makanan, air, baju, pakaian, selimut, obat, mie, nasi, susu, roti, tenda, dll
 - JANGAN pernah return items kosong jika ada penyebutan barang dalam teks!
 
-=== ATURAN URGENSI ===
-- "irrelevant" = Jika teks TIDAK berhubungan sama sekali dengan bencana, kecelakaan berat, atau permintaan bantuan darurat (contoh: jalanan macet biasa, curhatan, pesan spam, tanya jalan, dll).
-- "critical" = nyawa terancam langsung (terjebak, tenggelam, kebakaran, luka parah)
-- "high" = kondisi serius (di pengungsian, banjir, kelaparan, lansia/bayi butuh bantuan)
-- "medium" = butuh bantuan tapi aman (minta logistik biasa)
-- "low" = tidak mendesak (laporan info saja)
-
 === CONTOH ===
 
-Teks: "terminal raja basa penuh dengan penumpang macet total tidak bisa jalan"
-Jawaban: {"urgency":"irrelevant","items":[]}
+Teks: "pandu jahat"
+Jawaban: {"is_disaster_related":false,"reason":"Hanya kalimat pribadi/curhat, tidak ada konteks bencana atau keadaan darurat.","urgency":"irrelevant","items":[]}
 
-=== CONTOH ===
+Teks: "ocha laper belum mandi bauuu"
+Jawaban: {"is_disaster_related":false,"reason":"Keluhan sehari-hari tentang lapar dan belum mandi, bukan situasi bencana.","urgency":"irrelevant","items":[]}
 
-Teks: "saya sudah di pengungsian ada 10 orang, saya membutuhkan air mineral 10, makanan 10, dan pakaian 5"
-Jawaban: {"urgency":"high","items":[{"name":"air mineral","quantity":"10"},{"name":"makanan","quantity":"10"},{"name":"pakaian","quantity":"5"}]}
+Teks: "hari ini panas banget capek"
+Jawaban: {"is_disaster_related":false,"reason":"Keluhan cuaca dan kelelahan biasa, bukan bencana alam.","urgency":"irrelevant","items":[]}
 
-Teks: "butuhkan 5 pasang baju 10 air mineral dan 5 makanan"
-Jawaban: {"urgency":"medium","items":[{"name":"baju","quantity":"5 pasang"},{"name":"air mineral","quantity":"10"},{"name":"makanan","quantity":"5"}]}
+Teks: "terminal raja basa penuh dengan penumpang macet total"
+Jawaban: {"is_disaster_related":false,"reason":"Kemacetan lalu lintas biasa, bukan bencana alam.","urgency":"irrelevant","items":[]}
+
+Teks: "kami terjebak banjir di rumah sudah 2 hari kelaparan butuh makanan dan air"
+Jawaban: {"is_disaster_related":true,"reason":"Korban banjir terjebak dan kelaparan, ini situasi darurat bencana.","urgency":"critical","items":[{"name":"makanan","quantity":"sesuai kebutuhan"},{"name":"air","quantity":"sesuai kebutuhan"}]}
+
+Teks: "saya di posko pengungsian butuh 10 air mineral dan 5 selimut"
+Jawaban: {"is_disaster_related":true,"reason":"Permintaan logistik dari posko pengungsian bencana.","urgency":"high","items":[{"name":"air mineral","quantity":"10"},{"name":"selimut","quantity":"5"}]}
 
 Teks: "terjebak longsor butuh evakuasi"
-Jawaban: {"urgency":"critical","items":[]}
+Jawaban: {"is_disaster_related":true,"reason":"Korban terjebak longsor, nyawa terancam.","urgency":"critical","items":[]}
 
-Teks: "kami 20 orang butuh makan dan minum"
-Jawaban: {"urgency":"medium","items":[{"name":"makanan","quantity":"20"},{"name":"minuman","quantity":"20"}]}
-
-Teks: "tolong kirim selimut sama obat untuk anak saya yang sakit"
-Jawaban: {"urgency":"high","items":[{"name":"selimut","quantity":"sesuai kebutuhan"},{"name":"obat","quantity":"sesuai kebutuhan"}]}
-
-Teks: "kami butuh 20 nasi bungkus 10 air mineral 5 selimut dan 3 obat P3K"
-Jawaban: {"urgency":"medium","items":[{"name":"nasi bungkus","quantity":"20"},{"name":"air mineral","quantity":"10"},{"name":"selimut","quantity":"5"},{"name":"obat P3K","quantity":"3"}]}
-
-Teks: "perlu bantuan makanan buat 15 orang sama air bersih"
-Jawaban: {"urgency":"medium","items":[{"name":"makanan","quantity":"15"},{"name":"air bersih","quantity":"15"}]}
-
-=== TEKS DARI KORBAN ===
+=== TEKS DARI PENGGUNA ===
 %s
 
-Jawab HANYA JSON! Jangan lupa ekstrak SEMUA barang!`, combinedText)
+Jawab HANYA JSON! Format: {"is_disaster_related":bool,"reason":"...","urgency":"...","items":[...]}`, combinedText)
 
 	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
@@ -434,6 +432,12 @@ Jawab HANYA JSON! Jangan lupa ekstrak SEMUA barang!`, combinedText)
 	if !validUrgency {
 		fmt.Printf("[NLP] Invalid urgency from AI: %q, falling back\n", result.Urgency)
 		result.Urgency = "medium"
+	}
+
+	// Check is_disaster_related field from AI
+	if !result.IsDisasterRelated {
+		fmt.Printf("[NLP] AI says NOT disaster-related. Reason: %s\n", result.Reason)
+		return "irrelevant", "[]", nil
 	}
 
 	if result.Urgency == "irrelevant" {
