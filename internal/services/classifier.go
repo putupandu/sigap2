@@ -64,6 +64,39 @@ func tokenizeText(text string) []string {
 	return strings.Fields(text)
 }
 
+// emergencyKeywords are words that, if found in text, should ALWAYS bypass
+// the ML filter because they strongly indicate a real disaster/emergency.
+var emergencyKeywords = []string{
+	"terjebak", "terperangkap", "tertimbun", "tertimpa",
+	"longsor", "tanah longsor",
+	"tenggelam", "hanyut",
+	"kebakaran", "terbakar",
+	"gempa", "reruntuhan", "runtuh",
+	"tsunami",
+	"banjir", "terendam", "banjir bandang",
+	"luka parah", "luka berat", "patah tulang", "pendarahan", "berdarah",
+	"meninggal", "tewas", "korban",
+	"tolong", "selamatkan", "evakuasi",
+	"nyawa", "sekarat", "darurat",
+	"pengungsian", "pengungsi", "posko",
+	"terisolasi", "terputus",
+	"kelaparan", "kedinginan",
+	"pohon tumbang", "angin puting beliung",
+	"butuh bantuan", "minta bantuan", "perlu bantuan",
+	"butuh makanan", "butuh air", "butuh obat", "butuh selimut", "butuh tenda",
+}
+
+// containsEmergencyKeyword checks if text contains any emergency-related keyword
+func containsEmergencyKeyword(text string) bool {
+	lower := strings.ToLower(text)
+	for _, kw := range emergencyKeywords {
+		if strings.Contains(lower, kw) {
+			return true
+		}
+	}
+	return false
+}
+
 // CheckIfIrrelevantML returns true if the machine learning model classifies the text as a non-disaster (irrelevant)
 func CheckIfIrrelevantML(text string) bool {
 	if localClassifier == nil {
@@ -76,20 +109,21 @@ func CheckIfIrrelevantML(text string) bool {
 		return true // empty text is irrelevant
 	}
 
+	// SAFETY NET: If text contains any emergency/disaster keyword, ALWAYS let it through.
+	// This prevents false positives on legitimate disaster reports.
+	if containsEmergencyKeyword(text) {
+		fmt.Printf("[ML] BYPASS: Teks mengandung kata darurat/bencana, langsung lolos. Text: %q\n", text)
+		return false
+	}
+
 	scores, likely, _ := localClassifier.ProbScores(words)
-	
+
 	fmt.Printf("[ML] Analisa: %q\n", text)
 	fmt.Printf("[ML] Irrelevant Prob: %.2f%%, Disaster Prob: %.2f%%\n", scores[0]*100, scores[1]*100)
 
-	// likely == 0 berarti model memilih "Irrelevant"
-	if likely == 0 && scores[0] >= 0.50 {
-		fmt.Println("[ML] REJECTED: Teks terdeteksi sebagai Irrelevant (>=50%)")
-		return true
-	}
-
-	// Atau jika probabilitas irrelevant di atas 55% walaupun bukan likely utama (edge case, meski jarang)
-	if scores[0] > 0.55 {
-		fmt.Println("[ML] REJECTED: Probabilitas Irrelevant sangat tinggi (>55%)")
+	// likely == 0 berarti model memilih "Irrelevant" dan probabilitas harus tinggi
+	if likely == 0 && scores[0] >= 0.75 {
+		fmt.Println("[ML] REJECTED: Teks terdeteksi sebagai Irrelevant (>=75%)")
 		return true
 	}
 
