@@ -2,11 +2,81 @@ package services
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
+	"unicode"
+
 	"github.com/sigap2/sigap2/internal/database"
 	"github.com/sigap2/sigap2/internal/models"
 )
 
+// preValidateReport performs basic sanity checks BEFORE any ML/AI processing.
+// This is Gate 0 — catches obviously invalid input instantly without burning API credits.
+func preValidateReport(description, needs string) error {
+	desc := strings.TrimSpace(description)
+
+	// 1. Description WAJIB diisi
+	if desc == "" {
+		return fmt.Errorf("VALIDASI: Keterangan kondisi wajib diisi. Jelaskan situasi bencana yang Anda alami.")
+	}
+
+	// 2. Minimum 15 karakter
+	if len([]rune(desc)) < 15 {
+		return fmt.Errorf("VALIDASI: Keterangan terlalu pendek (minimal 15 karakter). Jelaskan situasi bencana secara detail.")
+	}
+
+	// 3. Minimum 3 kata
+	words := strings.Fields(desc)
+	if len(words) < 3 {
+		return fmt.Errorf("VALIDASI: Keterangan terlalu singkat (minimal 3 kata). Jelaskan kondisi, lokasi, dan kebutuhan Anda.")
+	}
+
+	// 4. Block teks yang 100% angka (tidak ada huruf alfabet sama sekali)
+	hasLetter := false
+	for _, r := range desc {
+		if unicode.IsLetter(r) {
+			hasLetter = true
+			break
+		}
+	}
+	if !hasLetter {
+		return fmt.Errorf("VALIDASI: Keterangan tidak boleh hanya berisi angka atau simbol. Jelaskan situasi bencana dengan kata-kata.")
+	}
+
+	// 5. Block karakter berulang > 3x berturut-turut (e.g. "aaaa", "1111", "!!!!")
+	repeatingRegex := regexp.MustCompile(`(.)\1{3,}`)
+	cleaned := repeatingRegex.ReplaceAllString(desc, "")
+	// Jika setelah dibersihkan panjangnya < 50% dari aslinya, itu mostly repetisi
+	if len([]rune(cleaned)) < len([]rune(desc))/2 {
+		return fmt.Errorf("VALIDASI: Keterangan tidak valid (karakter berulang). Jelaskan situasi bencana yang sebenarnya.")
+	}
+
+	// 6. Block teks yang hanya terdiri dari 1 kata unik yang diulang-ulang
+	// e.g. "halo halo halo halo halo"
+	if len(words) >= 3 {
+		uniqueWords := make(map[string]bool)
+		for _, w := range words {
+			uniqueWords[strings.ToLower(w)] = true
+		}
+		if len(uniqueWords) == 1 {
+			return fmt.Errorf("VALIDASI: Keterangan tidak valid (kata berulang). Jelaskan situasi bencana secara detail.")
+		}
+	}
+
+	// 7. Needs juga harus diisi
+	if strings.TrimSpace(needs) == "" {
+		return fmt.Errorf("VALIDASI: Pilih minimal satu kebutuhan (Makanan, Air Bersih, Evakuasi, dll).")
+	}
+
+	return nil
+}
+
 func CreateReport(reporterName, needs string, lat, lng float64, desc string) error {
+	// Step 0: Pre-validation (basic sanity checks)
+	if err := preValidateReport(desc, needs); err != nil {
+		return err
+	}
+
 	// Step 1: Local ML Classification
 	combinedText := desc + " " + needs
 	if CheckIfIrrelevantML(combinedText) {

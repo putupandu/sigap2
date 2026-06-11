@@ -105,10 +105,14 @@
                     placeholder="Tulis kebutuhan lainnya...">
             </div>
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Keterangan Kondisi Saat Ini</label>
+                <label class="block text-sm font-medium text-slate-700 mb-1">Keterangan Kondisi Saat Ini <span class="text-red-500">*</span></label>
                 <textarea id="sos-desc" rows="3"
-                    class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-red-500 focus:border-red-500 sm:text-sm bg-slate-50"
-                    placeholder="Misal: Terjebak di atap karena banjir setinggi 2 meter..."></textarea>
+                    class="w-full px-4 py-3 rounded-lg border border-slate-300 focus:ring-red-500 focus:border-red-500 sm:text-sm bg-slate-50 transition-colors"
+                    placeholder="Ceritakan detail bencana: lokasi, kondisi korban, apa yang terjadi... (minimal 15 karakter & 3 kata)"></textarea>
+                <div class="flex justify-between mt-1">
+                    <p id="desc-error" class="text-xs text-red-500 hidden">Keterangan terlalu pendek.</p>
+                    <p id="desc-counter" class="text-xs text-slate-400 ml-auto"><span id="char-count">0</span> char | <span id="word-count">0</span> kata</p>
+                </div>
             </div>
 
             <div id="sos-status" class="hidden text-center p-4 rounded-lg">

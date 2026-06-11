@@ -6,8 +6,57 @@ document.addEventListener("DOMContentLoaded", function() {
     const sosRipple = document.getElementById('sos-ripple');
     const needsOtherCheckbox = document.getElementById('needs-other-checkbox');
     const needsOtherInput = document.getElementById('sos-needs-other');
+    const charCountEl = document.getElementById('char-count');
+    const wordCountEl = document.getElementById('word-count');
+    const descErrorEl = document.getElementById('desc-error');
 
     if (!btnSos) return;
+
+    // ============================================================
+    // Real-time Text Validation
+    // ============================================================
+    function validateDesc() {
+        const text = sosDesc.value.trim();
+        const chars = text.length;
+        const words = text === "" ? 0 : text.trim().split(/\s+/).length;
+        
+        charCountEl.textContent = chars;
+        wordCountEl.textContent = words;
+
+        let isValid = true;
+        let errMsg = "";
+
+        if (chars < 15) {
+            isValid = false;
+            errMsg = "Keterangan terlalu pendek (minimal 15 karakter).";
+        } else if (words < 3) {
+            isValid = false;
+            errMsg = "Keterangan terlalu singkat (minimal 3 kata).";
+        } else if (/^[\d\s\.,]+$/.test(text)) {
+            isValid = false;
+            errMsg = "Tidak boleh hanya berisi angka.";
+        }
+
+        if (!isValid && chars > 0) {
+            sosDesc.classList.add('border-red-500', 'ring-1', 'ring-red-500');
+            sosDesc.classList.remove('border-slate-300', 'border-green-500', 'ring-green-500');
+            descErrorEl.textContent = errMsg;
+            descErrorEl.classList.remove('hidden');
+        } else if (isValid) {
+            sosDesc.classList.add('border-green-500', 'ring-1', 'ring-green-500');
+            sosDesc.classList.remove('border-slate-300', 'border-red-500', 'ring-red-500');
+            descErrorEl.classList.add('hidden');
+        } else {
+            // Empty state
+            sosDesc.classList.remove('border-green-500', 'ring-1', 'ring-green-500', 'border-red-500', 'ring-red-500');
+            sosDesc.classList.add('border-slate-300');
+            descErrorEl.classList.add('hidden');
+        }
+        
+        return isValid;
+    }
+
+    sosDesc.addEventListener('input', validateDesc);
 
     // ============================================================
     // Checkbox toggle styling
@@ -64,6 +113,20 @@ document.addEventListener("DOMContentLoaded", function() {
     // SOS Button Click
     // ============================================================
     btnSos.addEventListener('click', function() {
+        // Pre-validation
+        const isDescValid = validateDesc();
+        if (!isDescValid) {
+            sosDesc.focus();
+            showError("Silakan lengkapi keterangan kondisi Anda terlebih dahulu.");
+            return;
+        }
+
+        const needs = getSelectedNeeds();
+        if (!needs) {
+            showError("Silakan pilih minimal satu kebutuhan Anda.");
+            return;
+        }
+
         // Show loading state
         btnSos.disabled = true;
         sosRipple.classList.remove('hidden');
@@ -125,6 +188,9 @@ document.addEventListener("DOMContentLoaded", function() {
             return response.json();
         })
         .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
             sosRipple.classList.add('hidden');
             sosStatus.classList.remove('bg-blue-50', 'text-blue-700');
             sosStatus.classList.add('bg-green-50', 'text-green-700');
@@ -141,7 +207,12 @@ document.addEventListener("DOMContentLoaded", function() {
             }, 3000);
         })
         .catch(error => {
-            showError("Terjadi kesalahan saat mengirim data. Coba lagi.");
+            // Use specific error message if available, otherwise generic
+            let errMsg = "Terjadi kesalahan saat mengirim data. Coba lagi.";
+            if (error.message && error.message !== "Server error") {
+                errMsg = error.message;
+            }
+            showError(errMsg);
         });
     }
 
@@ -150,10 +221,11 @@ document.addEventListener("DOMContentLoaded", function() {
         sosRipple.classList.add('hidden');
         sosStatus.classList.remove('bg-blue-50', 'text-blue-700');
         sosStatus.classList.add('bg-red-50', 'text-red-700');
+        sosStatus.classList.remove('hidden');
         sosStatus.innerHTML = `
-            <div class="flex items-center justify-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                ${msg}
+            <div class="flex items-center justify-center text-left">
+                <svg class="w-6 h-6 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span class="text-sm font-medium leading-tight">${msg}</span>
             </div>
         `;
     }

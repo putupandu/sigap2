@@ -22,13 +22,19 @@ func CreateReport(c *fiber.Ctx) error {
 
 	err := services.CreateReport(reporterName, needs, lat, lng, desc)
 	if err != nil {
-		if err.Error() == "Laporan ditolak: Keterangan tidak berhubungan dengan bencana atau keadaan darurat." {
+		errMsg := err.Error()
+		// Jika ini adalah error validasi (pre-validation, ML, atau AI)
+		if len(errMsg) > 9 && (errMsg[:9] == "VALIDASI:" || errMsg[:15] == "Laporan ditolak") {
 			if c.Accepts("json") == "json" || c.Get("X-Requested-With") == "XMLHttpRequest" {
-				return c.Status(400).JSON(fiber.Map{"error": err.Error()})
+				return c.Status(400).JSON(fiber.Map{"error": errMsg})
 			}
-			return c.Redirect("/sos?error=irrelevant")
+			return c.Redirect("/sos?error=invalid_report")
 		}
-		return c.Status(500).JSON(fiber.Map{"error": err.Error()})
+		// Error internal server lainnya
+		if c.Accepts("json") == "json" || c.Get("X-Requested-With") == "XMLHttpRequest" {
+			return c.Status(500).JSON(fiber.Map{"error": "Terjadi kesalahan pada server. Silakan coba lagi."})
+		}
+		return c.Status(500).SendString("Terjadi kesalahan pada server: " + errMsg)
 	}
 
 	// If API call, return JSON

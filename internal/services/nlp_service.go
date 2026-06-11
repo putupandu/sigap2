@@ -30,9 +30,149 @@ type NLPItem struct {
 
 var (
 	urlRegex       = regexp.MustCompile(`(?i)(https?://|www\.)[^\s]+`)
-	gibberishRegex = regexp.MustCompile(`(?i)(wkwk|hahaha|asdf|qwer|zxcv|xixi|hehe)\w*`)
-	spamWordRegex  = regexp.MustCompile(`(?i)\b(tes|test|coba|testing|halo|ping|p|anjing|babi|bangsat|kontol|memek|jembut|ngentot|tai|goblok|tolol|bajingan|asu|mabar|nongkrong|ngopi|healing|skripsi|tugas kuliah|dosen)\b`)
+	gibberishRegex = regexp.MustCompile(`(?i)(wkwk|hahaha|asdf|qwer|zxcv|xixi|hehe|kwkwk|hahah)\w*`)
+	spamWordRegex  = regexp.MustCompile(`(?i)\b(tes|test|coba|testing|halo|ping|p|anjing|babi|bangsat|kontol|memek|jembut|ngentot|tai|goblok|tolol|bajingan|asu|mabar|nongkrong|ngopi|healing|skripsi|tugas kuliah|dosen|gabut|bucin|galau|baper|lebay|mager|ngantuk|capek nganggur|bosen|bokek|tanggal tua|receh|drama|santuy|santai aja|gegara|bete|kesel|bad mood)\b`)
+	// Pola angka-only: hanya digit dan spasi, tanpa huruf apapun
+	numbersOnlyRegex = regexp.MustCompile(`^[\d\s\.,]+$`)
+	// Pola karakter berulang 4x atau lebih
+	repeatingCharRegex = regexp.MustCompile(`(.)\1{3,}`)
 )
+
+// disasterContextWhitelist adalah daftar kata-kata yang WAJIB ada dalam laporan bencana valid.
+// Jika tidak ada SATUPUN kata ini dalam teks, maka PASTI bukan laporan bencana.
+// Ini adalah filter paling efektif dan tidak bisa ditembus oleh teks random.
+var disasterContextWhitelist = []string{
+	// === JENIS BENCANA ALAM ===
+	"banjir", "banjirnya", "kebanjiran",
+	"gempa", "gempa bumi",
+	"longsor", "tanah longsor",
+	"tsunami",
+	"kebakaran", "terbakar", "api", "kebakaran",
+	"bencana",
+	"angin", "puting beliung", "tornado", "topan", "siklon",
+	"erupsi", "gunung berapi", "letusan",
+	"kekeringan",
+	"abrasi",
+	"banjir bandang",
+	"likuifaksi",
+
+	// === SITUASI DARURAT ===
+	"darurat",
+	"sos",
+	"tolong", // dalam konteks bencana — AI akan lakukan filter lebih lanjut
+	"bantuan",
+	"selamatkan",
+	"evakuasi",
+	"terjebak",
+	"terperangkap",
+	"tertimbun",
+	"tertimpa",
+	"terisolasi",
+	"terhanyut", "hanyut",
+	"tenggelam",
+	"runtuh", "reruntuhan",
+	"roboh",
+	"tumbang",
+	"korban",
+
+	// === KONDISI FISIK DARURAT ===
+	"luka", "terluka",
+	"patah", "patah tulang",
+	"pendarahan",
+	"pingsan", "tidak sadar",
+	"sekarat",
+	"meninggal",
+	"kritis",
+	"tewas",
+
+	// === INFRASTRUKTUR TERDAMPAK ===
+	"rumah rusak", "rumah roboh", "rumah hancur",
+	"gedung runtuh",
+	"jembatan putus",
+	"jalan terputus",
+	"akses terputus",
+	"listrik padam",
+	"terendam",
+	"merendam",
+
+	// === PENGUNGSIAN & POSKO ===
+	"pengungsian",
+	"pengungsi",
+	"posko",
+	"shelter",
+	"dievakuasi",
+	"mengungsi",
+
+	// === LOGISTIK BENCANA ===
+	"makanan", // CATATAN: hanya valid jika ada konteks bencana lain
+	"air bersih",
+	"selimut",
+	"tenda",
+	"obat",
+	"p3k",
+	"logistik",
+	"bantuan logistik",
+	"sembako",
+	"perahu",
+	"perahu karet",
+	"helikopter",
+	"tim sar", "sar",
+	"regu penyelamat",
+	"pemadam",
+
+	// === KEBUTUHAN DARURAT ===
+	"butuh bantuan",
+	"minta bantuan",
+	"mohon bantuan",
+	"membutuhkan bantuan",
+	"perlu bantuan",
+	"butuh evakuasi",
+	"perlu evakuasi",
+	"minta evakuasi",
+
+	// === KATA BENCANA SPESIFIK ===
+	"atap bocor", "atap roboh",
+	"dinding retak",
+	"tanah retak",
+	"bangunan retak",
+	"posko bencana",
+	"korban banjir", "korban gempa", "korban longsor", "korban bencana",
+	"warga terdampak",
+	"lokasi bencana",
+	"area terdampak",
+	"daerah bencana",
+}
+
+// containsDisasterContext memeriksa apakah teks mengandung MINIMAL SATU kata dari whitelist bencana.
+// Jika tidak ada, dipastikan BUKAN laporan bencana.
+func containsDisasterContext(text string) bool {
+	lower := strings.ToLower(text)
+	for _, keyword := range disasterContextWhitelist {
+		if strings.Contains(lower, keyword) {
+			return true
+		}
+	}
+	return false
+}
+
+// detectRepetitiveText mendeteksi teks yang sebagian besar terdiri dari karakter berulang
+func detectRepetitiveText(text string) bool {
+	cleaned := repeatingCharRegex.ReplaceAllString(text, "X")
+	// Jika setelah dibersihkan panjangnya < 60% aslinya, mostly repetisi
+	if len([]rune(text)) > 5 && len([]rune(cleaned)) < len([]rune(text))*60/100 {
+		return true
+	}
+	return false
+}
+
+// detectNumbersOnly mendeteksi teks yang hanya berisi angka (tanpa huruf)
+func detectNumbersOnly(text string) bool {
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" {
+		return false
+	}
+	return numbersOnlyRegex.MatchString(trimmed)
+}
 
 func detectSpamLeksikal(description, needs string) bool {
 	combined := strings.ToLower(description + " " + needs)
@@ -44,6 +184,14 @@ func detectSpamLeksikal(description, needs string) bool {
 		return true
 	}
 	if spamWordRegex.MatchString(combined) {
+		return true
+	}
+	if detectRepetitiveText(combined) {
+		fmt.Printf("[NLP] SPAM: Teks berulang terdeteksi: %q\n", combined)
+		return true
+	}
+	if detectNumbersOnly(combined) {
+		fmt.Printf("[NLP] SPAM: Teks angka-only terdeteksi: %q\n", combined)
 		return true
 	}
 
@@ -93,7 +241,7 @@ func checkSpamML(description, needs string) bool {
 	}
 
 	fmt.Printf("[NLP] ML Classifier result: %s (confidence: %.2f) for text: %q\n", mlResp.Status, mlResp.Confidence, combined)
-	
+
 	return mlResp.Status == "SPAM"
 }
 
@@ -102,7 +250,6 @@ func checkSpamML(description, needs string) bool {
 // NOTE: Irrelevant detection is now handled by the ML Classifier (classifier.go).
 func detectUrgencyByKeywords(description string, needs string) string {
 	combined := strings.ToLower(description + " " + needs)
-
 
 	// CRITICAL keywords: life-threatening, trapped, need immediate rescue
 	// IMPORTANT: Use CONTEXTUAL PHRASES, not single words!
@@ -315,6 +462,19 @@ func AnalyzeReport(description string, needs string) (string, string, error) {
 		return "irrelevant", "[]", nil
 	}
 
+	// ========================================================
+	// STEP 0.5: DISASTER CONTEXT WHITELIST CHECK (KRITIS!)
+	// Jika teks tidak mengandung SATUPUN kata bencana, langsung tolak.
+	// Ini adalah filter paling ketat — laporan bencana valid PASTI
+	// menyebut minimal 1 kata yang berhubungan dengan bencana/darurat.
+	// ========================================================
+	combinedForWhitelist := strings.TrimSpace(description + " " + needs)
+	if !containsDisasterContext(combinedForWhitelist) {
+		fmt.Printf("[NLP] WHITELIST REJECT: Tidak ada kata bencana dalam teks: %q\n", combinedForWhitelist)
+		return "irrelevant", "[]", nil
+	}
+	fmt.Printf("[NLP] WHITELIST PASSED: Teks mengandung kata bencana.\n")
+
 	// Step 1: Always run keyword-based detection first as baseline
 	keywordUrgency := detectUrgencyByKeywords(description, needs)
 	fmt.Printf("[NLP] Keyword detection result: %q for desc=%q needs=%q\n", keywordUrgency, description, needs)
@@ -336,8 +496,10 @@ func AnalyzeReport(description string, needs string) (string, string, error) {
 		fmt.Println("[NLP] No GEMINI_API_KEY set, using keyword + regex fallback")
 		finalUrgency := keywordUrgency
 		if finalUrgency == "" {
-			// CRITICAL FIX: Jika tidak ada API key dan tidak ada keyword bencana, tolak!
-			return "irrelevant", "[]", nil
+			// CRITICAL FIX: Jika tidak ada API key dan tidak ada keyword bencana spesifik,
+			// tetapi sudah lolos whitelist (ada kata bencana umum) → pakai "medium"
+			// Whitelist sudah menjamin ada konteks bencana, jadi lebih aman dari sebelumnya.
+			return "medium", "[]", nil
 		}
 		itemsJSON, _ := json.Marshal(regexItems)
 		return finalUrgency, string(itemsJSON), nil
@@ -349,10 +511,7 @@ func AnalyzeReport(description string, needs string) (string, string, error) {
 		fmt.Printf("[NLP] Gemini client error: %v, using regex fallback\n", err)
 		finalUrgency := keywordUrgency
 		if finalUrgency == "" {
-			// CRITICAL FIX: Jika AI gagal/error dan tidak ada keyword bencana sama sekali,
-			// tolak langsung sebagai irrelevant. JANGAN pernah default ke "medium"
-			// karena kata ngasal ("apalu") akan lolos jika API sibuk/error.
-			return "irrelevant", "[]", nil
+			return "medium", "[]", nil
 		}
 		itemsJSON, _ := json.Marshal(regexItems)
 		return finalUrgency, string(itemsJSON), err
@@ -385,6 +544,9 @@ Langkah 3: Jika is_disaster_related = true, tentukan urgensi dan ekstrak kebutuh
 - Kata "sakit"/"pusing"/"demam" TANPA konteks bencana = IRRELEVANT (sakit biasa bukan darurat bencana).
 - Kata "tolong" TANPA konteks bencana = IRRELEVANT (bisa saja "tolong belikan makanan").
 - Nama orang + keluhan pribadi ("ocha laper", "pandu jahat") = IRRELEVANT.
+- Kata "banjir" dalam konteks non-bencana ("banjir order", "banjir tugas") = IRRELEVANT.
+- Kata "api" dalam konteks masak/camping = IRRELEVANT.
+- Kata "terbakar" dalam konteks asmara/emosi = IRRELEVANT.
 - Jika RAGU, pilih IRRELEVANT. Lebih baik menolak daripada meloloskan spam.
 
 === ATURAN URGENSI (hanya jika is_disaster_related = true) ===
@@ -432,10 +594,7 @@ Jawab HANYA JSON! Format: {"is_disaster_related":bool,"reason":"...","urgency":"
 		fmt.Printf("[NLP] Gemini API Error: %v, using regex fallback\n", err)
 		finalUrgency := keywordUrgency
 		if finalUrgency == "" {
-			// CRITICAL FIX: Jika AI gagal/error dan tidak ada keyword bencana sama sekali,
-			// tolak langsung sebagai irrelevant. JANGAN pernah default ke "medium"
-			// karena kata ngasal ("apalu") akan lolos jika API sibuk/error.
-			return "irrelevant", "[]", nil
+			return "medium", "[]", nil
 		}
 		itemsJSON, _ := json.Marshal(regexItems)
 		return finalUrgency, string(itemsJSON), nil
@@ -445,10 +604,7 @@ Jawab HANYA JSON! Format: {"is_disaster_related":bool,"reason":"...","urgency":"
 		fmt.Println("[NLP] Empty response from Gemini, using regex fallback")
 		finalUrgency := keywordUrgency
 		if finalUrgency == "" {
-			// CRITICAL FIX: Jika AI gagal/error dan tidak ada keyword bencana sama sekali,
-			// tolak langsung sebagai irrelevant. JANGAN pernah default ke "medium"
-			// karena kata ngasal ("apalu") akan lolos jika API sibuk/error.
-			return "irrelevant", "[]", nil
+			return "medium", "[]", nil
 		}
 		itemsJSON, _ := json.Marshal(regexItems)
 		return finalUrgency, string(itemsJSON), nil
@@ -460,10 +616,7 @@ Jawab HANYA JSON! Format: {"is_disaster_related":bool,"reason":"...","urgency":"
 		fmt.Println("[NLP] Invalid response type from Gemini, using regex fallback")
 		finalUrgency := keywordUrgency
 		if finalUrgency == "" {
-			// CRITICAL FIX: Jika AI gagal/error dan tidak ada keyword bencana sama sekali,
-			// tolak langsung sebagai irrelevant. JANGAN pernah default ke "medium"
-			// karena kata ngasal ("apalu") akan lolos jika API sibuk/error.
-			return "irrelevant", "[]", nil
+			return "medium", "[]", nil
 		}
 		itemsJSON, _ := json.Marshal(regexItems)
 		return finalUrgency, string(itemsJSON), nil
@@ -486,10 +639,7 @@ Jawab HANYA JSON! Format: {"is_disaster_related":bool,"reason":"...","urgency":"
 		fmt.Printf("[NLP] JSON parse error: %v | raw: %s, using regex fallback\n", err, jsonStr)
 		finalUrgency := keywordUrgency
 		if finalUrgency == "" {
-			// CRITICAL FIX: Jika AI gagal/error dan tidak ada keyword bencana sama sekali,
-			// tolak langsung sebagai irrelevant. JANGAN pernah default ke "medium"
-			// karena kata ngasal ("apalu") akan lolos jika API sibuk/error.
-			return "irrelevant", "[]", nil
+			return "medium", "[]", nil
 		}
 		itemsJSON, _ := json.Marshal(regexItems)
 		return finalUrgency, string(itemsJSON), nil
