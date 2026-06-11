@@ -336,7 +336,8 @@ func AnalyzeReport(description string, needs string) (string, string, error) {
 		fmt.Println("[NLP] No GEMINI_API_KEY set, using keyword + regex fallback")
 		finalUrgency := keywordUrgency
 		if finalUrgency == "" {
-			finalUrgency = "medium"
+			// CRITICAL FIX: Jika tidak ada API key dan tidak ada keyword bencana, tolak!
+			return "irrelevant", "[]", nil
 		}
 		itemsJSON, _ := json.Marshal(regexItems)
 		return finalUrgency, string(itemsJSON), nil
@@ -348,7 +349,10 @@ func AnalyzeReport(description string, needs string) (string, string, error) {
 		fmt.Printf("[NLP] Gemini client error: %v, using regex fallback\n", err)
 		finalUrgency := keywordUrgency
 		if finalUrgency == "" {
-			finalUrgency = "medium"
+			// CRITICAL FIX: Jika AI gagal/error dan tidak ada keyword bencana sama sekali,
+			// tolak langsung sebagai irrelevant. JANGAN pernah default ke "medium"
+			// karena kata ngasal ("apalu") akan lolos jika API sibuk/error.
+			return "irrelevant", "[]", nil
 		}
 		itemsJSON, _ := json.Marshal(regexItems)
 		return finalUrgency, string(itemsJSON), err
@@ -428,7 +432,10 @@ Jawab HANYA JSON! Format: {"is_disaster_related":bool,"reason":"...","urgency":"
 		fmt.Printf("[NLP] Gemini API Error: %v, using regex fallback\n", err)
 		finalUrgency := keywordUrgency
 		if finalUrgency == "" {
-			finalUrgency = "medium"
+			// CRITICAL FIX: Jika AI gagal/error dan tidak ada keyword bencana sama sekali,
+			// tolak langsung sebagai irrelevant. JANGAN pernah default ke "medium"
+			// karena kata ngasal ("apalu") akan lolos jika API sibuk/error.
+			return "irrelevant", "[]", nil
 		}
 		itemsJSON, _ := json.Marshal(regexItems)
 		return finalUrgency, string(itemsJSON), nil
@@ -438,7 +445,10 @@ Jawab HANYA JSON! Format: {"is_disaster_related":bool,"reason":"...","urgency":"
 		fmt.Println("[NLP] Empty response from Gemini, using regex fallback")
 		finalUrgency := keywordUrgency
 		if finalUrgency == "" {
-			finalUrgency = "medium"
+			// CRITICAL FIX: Jika AI gagal/error dan tidak ada keyword bencana sama sekali,
+			// tolak langsung sebagai irrelevant. JANGAN pernah default ke "medium"
+			// karena kata ngasal ("apalu") akan lolos jika API sibuk/error.
+			return "irrelevant", "[]", nil
 		}
 		itemsJSON, _ := json.Marshal(regexItems)
 		return finalUrgency, string(itemsJSON), nil
@@ -450,7 +460,10 @@ Jawab HANYA JSON! Format: {"is_disaster_related":bool,"reason":"...","urgency":"
 		fmt.Println("[NLP] Invalid response type from Gemini, using regex fallback")
 		finalUrgency := keywordUrgency
 		if finalUrgency == "" {
-			finalUrgency = "medium"
+			// CRITICAL FIX: Jika AI gagal/error dan tidak ada keyword bencana sama sekali,
+			// tolak langsung sebagai irrelevant. JANGAN pernah default ke "medium"
+			// karena kata ngasal ("apalu") akan lolos jika API sibuk/error.
+			return "irrelevant", "[]", nil
 		}
 		itemsJSON, _ := json.Marshal(regexItems)
 		return finalUrgency, string(itemsJSON), nil
@@ -473,7 +486,10 @@ Jawab HANYA JSON! Format: {"is_disaster_related":bool,"reason":"...","urgency":"
 		fmt.Printf("[NLP] JSON parse error: %v | raw: %s, using regex fallback\n", err, jsonStr)
 		finalUrgency := keywordUrgency
 		if finalUrgency == "" {
-			finalUrgency = "medium"
+			// CRITICAL FIX: Jika AI gagal/error dan tidak ada keyword bencana sama sekali,
+			// tolak langsung sebagai irrelevant. JANGAN pernah default ke "medium"
+			// karena kata ngasal ("apalu") akan lolos jika API sibuk/error.
+			return "irrelevant", "[]", nil
 		}
 		itemsJSON, _ := json.Marshal(regexItems)
 		return finalUrgency, string(itemsJSON), nil
