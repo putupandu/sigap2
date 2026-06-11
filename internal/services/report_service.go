@@ -7,6 +7,12 @@ import (
 )
 
 func CreateReport(reporterName, needs string, lat, lng float64, desc string) error {
+	// Step 1: Local ML Classification
+	combinedText := desc + " " + needs
+	if CheckIfIrrelevantML(combinedText) {
+		return fmt.Errorf("Laporan ditolak: Sistem kami mendeteksi teks ini bukan format laporan keadaan darurat.")
+	}
+
 	urgency, extractedData, errNLP := AnalyzeReport(desc, needs)
 	if errNLP != nil {
 		fmt.Println("Warning: NLP analysis failed:", errNLP)

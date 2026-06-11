@@ -13,6 +13,7 @@ import (
 	"github.com/sigap2/sigap2/internal/config"
 	"github.com/sigap2/sigap2/internal/database"
 	"github.com/sigap2/sigap2/internal/routes"
+	"github.com/sigap2/sigap2/internal/services"
 )
 
 func main() {
@@ -23,6 +24,9 @@ func main() {
 	database.ConnectDB()
 	database.MigrateDB()
 	database.SeedData()
+
+	// Init ML Classifier
+	services.InitMLClassifier()
 
 	// Initialize standard Go html template engine
 	engine := html.New("./web/templates", ".html")
