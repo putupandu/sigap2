@@ -43,6 +43,14 @@ services:
       timeout: 5s
       retries: 5
 
+  ml-classifier:
+    build: ./ml_service
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    networks:
+      - sigap_net
+
 networks:
   sigap_net:
     driver: bridge

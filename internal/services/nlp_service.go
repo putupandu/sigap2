@@ -1,12 +1,15 @@
 package services
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"regexp"
 	"strings"
+	"time"
 	"unicode"
 
 	"github.com/google/generative-ai-go/genai"
@@ -45,6 +48,53 @@ func detectSpamLeksikal(description, needs string) bool {
 	}
 
 	return false
+}
+
+type MLClassifyRequest struct {
+	Text string `json:"text"`
+}
+
+type MLClassifyResponse struct {
+	Status     string  `json:"status"`
+	Confidence float64 `json:"confidence"`
+}
+
+func checkSpamML(description, needs string) bool {
+	combined := strings.TrimSpace(description + " " + needs)
+	if combined == "" {
+		return true
+	}
+
+	reqBody, _ := json.Marshal(MLClassifyRequest{Text: combined})
+
+	mlURL := os.Getenv("ML_CLASSIFIER_URL")
+	if mlURL == "" {
+		// Default internal Docker network URL
+		mlURL = "http://ml-classifier:8000/v1/classify"
+	}
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Post(mlURL, "application/json", bytes.NewBuffer(reqBody))
+	if err != nil {
+		fmt.Printf("[NLP] ML Classifier request error: %v, falling back to lexical\n", err)
+		return detectSpamLeksikal(description, needs)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("[NLP] ML Classifier returned status %d, falling back to lexical\n", resp.StatusCode)
+		return detectSpamLeksikal(description, needs)
+	}
+
+	var mlResp MLClassifyResponse
+	if err := json.NewDecoder(resp.Body).Decode(&mlResp); err != nil {
+		fmt.Printf("[NLP] ML Classifier decode error: %v, falling back to lexical\n", err)
+		return detectSpamLeksikal(description, needs)
+	}
+
+	fmt.Printf("[NLP] ML Classifier result: %s (confidence: %.2f) for text: %q\n", mlResp.Status, mlResp.Confidence, combined)
+	
+	return mlResp.Status == "SPAM"
 }
 
 // detectUrgencyByKeywords uses keyword matching to determine urgency level.
@@ -250,9 +300,9 @@ func extractItemsByRegex(text string) []NLPItem {
 // Falls back to keyword-based detection if AI fails or returns a lower urgency than keywords suggest.
 // Also falls back to regex-based item extraction if AI returns empty items.
 func AnalyzeReport(description string, needs string) (string, string, error) {
-	// Step 0: Check lexical spam first to block obvious fake reports
-	if detectSpamLeksikal(description, needs) {
-		fmt.Printf("[NLP] Lexical spam detected for desc=%q needs=%q\n", description, needs)
+	// Step 0: Check spam using ML Classifier (with lexical fallback)
+	if checkSpamML(description, needs) {
+		fmt.Printf("[NLP] SPAM detected for desc=%q needs=%q\n", description, needs)
 		return "irrelevant", "[]", nil
 	}
 

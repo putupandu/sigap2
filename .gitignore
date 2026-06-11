@@ -36,5 +36,10 @@ implementation_plan*.md
 web/static/uploads/*
 !web/static/uploads/.gitkeep
 
+# Python
+ml_service/venv/
+__pycache__/
+*.pyc
+
 # Gemini IDE
 .gemini/

@@ -1,0 +1,11 @@
+{
+    "venvPath": "ml_service",
+    "venv": "venv",
+    "executionEnvironments": [
+        {
+            "root": "ml_service",
+            "venv": "venv",
+            "venvPath": "ml_service"
+        }
+    ]
+}
