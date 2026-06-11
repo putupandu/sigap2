@@ -105,20 +105,29 @@ func detectUrgencyByKeywords(description string, needs string) string {
 
 
 	// CRITICAL keywords: life-threatening, trapped, need immediate rescue
+	// IMPORTANT: Use CONTEXTUAL PHRASES, not single words!
+	// "terjebak" alone matches "terjebak macet" (traffic) which is NOT a disaster.
 	criticalKeywords := []string{
-		"terjebak", "terperangkap", "tertimbun", "tertimpa",
-		"longsor", "tanah longsor",
-		"tenggelam", "hanyut",
-		"kebakaran", "terbakar", "api",
-		"gempa", "reruntuhan", "runtuh",
-		"tsunami",
-		"luka parah", "luka berat", "patah tulang", "pendarahan", "berdarah",
-		"tidak sadarkan diri", "pingsan", "kritis",
-		"meninggal", "tewas",
-		"tolong", "selamatkan", "evakuasi",
-		"nyawa", "sekarat", "darurat",
-		"banjir bandang",
-		"anak kecil terjebak", "bayi",
+		// Terjebak/terperangkap with disaster context only
+		"terjebak banjir", "terjebak longsor", "terjebak gempa", "terjebak kebakaran",
+		"terjebak reruntuhan",
+		"terperangkap banjir", "terperangkap longsor", "terperangkap kebakaran",
+		"tertimbun longsor", "tertimbun reruntuhan", "tertimbun tanah",
+		"tertimpa reruntuhan", "tertimpa bangunan", "tertimpa pohon",
+		// Bencana alam besar
+		"tanah longsor", "banjir bandang",
+		"gempa bumi", "tsunami",
+		"kebakaran", "terbakar",
+		// Air
+		"tenggelam", "hanyut terbawa",
+		// Luka serius dalam konteks bencana
+		"luka parah", "luka berat", "patah tulang", "pendarahan hebat",
+		"tidak sadarkan diri", "kritis",
+		"meninggal dunia", "tewas",
+		// Evakuasi darurat
+		"butuh evakuasi", "perlu evakuasi", "evakuasi korban",
+		"nyawa terancam", "sekarat",
+		"reruntuhan bangunan", "bangunan runtuh",
 	}
 
 	for _, kw := range criticalKeywords {
@@ -129,16 +138,16 @@ func detectUrgencyByKeywords(description string, needs string) string {
 
 	// HIGH keywords: serious but not immediately life-threatening
 	highKeywords := []string{
-		"banjir", "terendam", "genangan tinggi",
+		"banjir merendam", "terendam banjir", "genangan tinggi",
 		"rumah rusak", "rumah roboh", "atap roboh",
-		"akses terputus", "jalan terputus", "terisolasi",
-		"kelaparan", "kedinginan", "dehidrasi",
-		"lansia", "manula", "orang tua",
-		"hamil", "ibu hamil",
-		"luka ringan", "demam tinggi", "sakit parah",
-		"tidak ada makanan", "tidak ada air",
-		"mengungsi", "pengungsi", "pengungsian",
-		"pohon tumbang",
+		"akses terputus", "jalan terputus",
+		"terisolasi banjir", "terisolasi longsor",
+		"kelaparan di pengungsian", "kelaparan di posko",
+		"pengungsi", "pengungsian", "posko bencana", "posko pengungsian",
+		"korban bencana", "korban banjir", "korban longsor", "korban gempa",
+		"pohon tumbang", "angin puting beliung",
+		"tidak ada makanan", "tidak ada air bersih",
+		"butuh bantuan darurat",
 	}
 
 	for _, kw := range highKeywords {
@@ -485,8 +494,11 @@ Jawab HANYA JSON! Format: {"is_disaster_related":bool,"reason":"...","urgency":"
 	}
 
 	// Check is_disaster_related field from AI
+	// IMPORTANT: AI judgment takes PRIORITY over keyword detection.
+	// This prevents false positives like "terjebak macet" being classified as Critical.
 	if !result.IsDisasterRelated {
 		fmt.Printf("[NLP] AI says NOT disaster-related. Reason: %s\n", result.Reason)
+		fmt.Printf("[NLP] Keyword urgency was %q but AI overrides to IRRELEVANT\n", keywordUrgency)
 		return "irrelevant", "[]", nil
 	}
 
@@ -498,6 +510,7 @@ Jawab HANYA JSON! Format: {"is_disaster_related":bool,"reason":"...","urgency":"
 	fmt.Printf("[NLP] AI urgency: %q, Keyword urgency: %q\n", result.Urgency, keywordUrgency)
 
 	// Step 4: Use the HIGHER urgency between AI and keyword detection
+	// Both AI and keywords agree it's disaster-related, so pick the more severe urgency.
 	finalUrgency := higherUrgency(result.Urgency, keywordUrgency)
 	fmt.Printf("[NLP] Final urgency: %q\n", finalUrgency)
 

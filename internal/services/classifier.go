@@ -64,26 +64,34 @@ func tokenizeText(text string) []string {
 	return strings.Fields(text)
 }
 
-// emergencyKeywords are words that, if found in text, should ALWAYS bypass
-// the ML filter because they strongly indicate a real disaster/emergency.
+// emergencyKeywords are CONTEXTUAL phrases that strongly indicate a real disaster/emergency.
+// IMPORTANT: We use multi-word phrases instead of single words to avoid false positives.
+// e.g. "terjebak" alone could match "terjebak macet" (traffic) which is NOT a disaster.
 var emergencyKeywords = []string{
-	"terjebak", "terperangkap", "tertimbun", "tertimpa",
-	"longsor", "tanah longsor",
-	"tenggelam", "hanyut",
+	// Terjebak/terperangkap — only with disaster context
+	"terjebak banjir", "terjebak longsor", "terjebak gempa", "terjebak kebakaran",
+	"terjebak reruntuhan", "terjebak tanah longsor",
+	"terperangkap banjir", "terperangkap longsor", "terperangkap kebakaran",
+	"terperangkap reruntuhan",
+	"tertimbun longsor", "tertimbun reruntuhan", "tertimbun tanah",
+	"tertimpa reruntuhan", "tertimpa bangunan", "tertimpa pohon",
+	// Bencana alam — these are inherently disaster-related
+	"tanah longsor", "banjir bandang", "banjir merendam",
+	"gempa bumi", "tsunami",
 	"kebakaran", "terbakar",
-	"gempa", "reruntuhan", "runtuh",
-	"tsunami",
-	"banjir", "terendam", "banjir bandang",
-	"luka parah", "luka berat", "patah tulang", "pendarahan", "berdarah",
-	"meninggal", "tewas", "korban",
-	"tolong", "selamatkan", "evakuasi",
-	"nyawa", "sekarat", "darurat",
-	"pengungsian", "pengungsi", "posko",
-	"terisolasi", "terputus",
-	"kelaparan", "kedinginan",
-	"pohon tumbang", "angin puting beliung",
-	"butuh bantuan", "minta bantuan", "perlu bantuan",
-	"butuh makanan", "butuh air", "butuh obat", "butuh selimut", "butuh tenda",
+	"angin puting beliung", "angin kencang",
+	"pohon tumbang",
+	// Situasi darurat spesifik bencana
+	"tenggelam", "hanyut terbawa",
+	"reruntuhan bangunan", "bangunan runtuh", "rumah roboh",
+	// Korban/evakuasi
+	"evakuasi korban", "butuh evakuasi", "perlu evakuasi",
+	"pengungsian", "pengungsi", "posko bencana", "posko pengungsian",
+	"korban bencana", "korban banjir", "korban longsor", "korban gempa",
+	// Kebutuhan darurat bencana
+	"butuh bantuan darurat", "minta bantuan evakuasi",
+	"butuh makanan", "butuh air bersih", "butuh obat", "butuh selimut", "butuh tenda",
+	"terisolasi banjir", "terisolasi longsor",
 }
 
 // containsEmergencyKeyword checks if text contains any emergency-related keyword
