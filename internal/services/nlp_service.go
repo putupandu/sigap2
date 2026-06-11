@@ -23,10 +23,43 @@ type NLPItem struct {
 	Quantity string `json:"quantity"`
 }
 
+var (
+	urlRegex       = regexp.MustCompile(`(?i)(https?://|www\.)[^\s]+`)
+	gibberishRegex = regexp.MustCompile(`(?i)(wkwk|hahaha|asdf|qwer|zxcv|xixi|hehe)\w*`)
+	spamWordRegex  = regexp.MustCompile(`(?i)\b(tes|test|coba|testing|halo|ping|p|anjing|babi|bangsat|kontol|memek|jembut|ngentot|tai|goblok|tolol|bajingan|asu|mabar|nongkrong|ngopi|healing|skripsi|tugas kuliah|dosen)\b`)
+)
+
+func detectSpamLeksikal(description, needs string) bool {
+	combined := strings.ToLower(description + " " + needs)
+
+	if urlRegex.MatchString(combined) {
+		return true
+	}
+	if gibberishRegex.MatchString(combined) {
+		return true
+	}
+	if spamWordRegex.MatchString(combined) {
+		return true
+	}
+
+	return false
+}
+
 // detectUrgencyByKeywords uses keyword matching to determine urgency level.
 // This serves as a reliable fallback when AI analysis fails or returns incorrect results.
 func detectUrgencyByKeywords(description string, needs string) string {
 	combined := strings.ToLower(description + " " + needs)
+
+	// IRRELEVANT keywords: explicitly mark as not a disaster (useful for regex fallback)
+	irrelevantKeywords := []string{
+		"macet", "terminal", "penumpang", "stasiun", "kereta",
+		"curhat", "spam", "coba-coba", "ngetes",
+	}
+	for _, kw := range irrelevantKeywords {
+		if strings.Contains(combined, kw) {
+			return "irrelevant"
+		}
+	}
 
 	// CRITICAL keywords: life-threatening, trapped, need immediate rescue
 	criticalKeywords := []string{
@@ -224,6 +257,12 @@ func extractItemsByRegex(text string) []NLPItem {
 // Falls back to keyword-based detection if AI fails or returns a lower urgency than keywords suggest.
 // Also falls back to regex-based item extraction if AI returns empty items.
 func AnalyzeReport(description string, needs string) (string, string, error) {
+	// Step 0: Check lexical spam first to block obvious fake reports
+	if detectSpamLeksikal(description, needs) {
+		fmt.Printf("[NLP] Lexical spam detected for desc=%q needs=%q\n", description, needs)
+		return "irrelevant", "[]", nil
+	}
+
 	// Step 1: Always run keyword-based detection first as baseline
 	keywordUrgency := detectUrgencyByKeywords(description, needs)
 	fmt.Printf("[NLP] Keyword detection result: %q for desc=%q needs=%q\n", keywordUrgency, description, needs)
