@@ -72,7 +72,7 @@ func main() {
 		time.Sleep(1 * time.Second)
 		exec.Command("rundll32", "url.dll,FileProtocolHandler", "http://localhost:"+port).Start()
 	}()
-	if err := app.Listen(":" + port); err != nil {
+	if err := app.Listen("0.0.0.0:" + port); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
 }
