@@ -27,11 +27,11 @@ func LoadConfig() {
 	}
 
 	AppConfig = Config{
-		DBHost:       getEnv("DB_HOST", "localhost"),
-		DBPort:       getEnv("DB_PORT", "3306"),
-		DBUser:       getEnv("DB_USER", "sigap"),
-		DBPass:       getEnv("DB_PASS", "sigap_secret"),
-		DBName:       getEnv("DB_NAME", "sigap2"),
+		DBHost:       getEnv("DB_HOST", getEnv("MYSQLHOST", "localhost")),
+		DBPort:       getEnv("DB_PORT", getEnv("MYSQLPORT", "3306")),
+		DBUser:       getEnv("DB_USER", getEnv("MYSQLUSER", "sigap")),
+		DBPass:       getEnv("DB_PASS", getEnv("MYSQLPASSWORD", "sigap_secret")),
+		DBName:       getEnv("DB_NAME", getEnv("MYSQLDATABASE", "sigap2")),
 		JWTSecret:    getEnv("JWT_SECRET", "super-secret-jwt-key"),
 		AppPort:      getEnv("PORT", getEnv("APP_PORT", "3000")),
 		FonnteAPIKey: getEnv("FONNTE_API_KEY", ""),
