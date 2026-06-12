@@ -27,8 +27,10 @@ WORKDIR /root/
 COPY --from=builder /app/main .
 
 # We also need to copy the web templates and static files for the UI
-# We will create these directories later
 COPY --from=builder /app/web ./web
+
+# Copy internal data directory for ML dataset
+COPY --from=builder /app/internal/services/data ./internal/services/data
 
 # Expose port 3000 to the outside world
 EXPOSE 3000

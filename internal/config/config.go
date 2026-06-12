@@ -33,7 +33,7 @@ func LoadConfig() {
 		DBPass:       getEnv("DB_PASS", "sigap_secret"),
 		DBName:       getEnv("DB_NAME", "sigap2"),
 		JWTSecret:    getEnv("JWT_SECRET", "super-secret-jwt-key"),
-		AppPort:      getEnv("APP_PORT", "3000"),
+		AppPort:      getEnv("PORT", getEnv("APP_PORT", "3000")),
 		FonnteAPIKey: getEnv("FONNTE_API_KEY", ""),
 	}
 }
