@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 	"unicode"
 
@@ -43,11 +42,21 @@ func preValidateReport(description, needs string) error {
 		return fmt.Errorf("VALIDASI: Keterangan tidak boleh hanya berisi angka atau simbol. Jelaskan situasi bencana dengan kata-kata.")
 	}
 
-	// 5. Block karakter berulang > 3x berturut-turut (e.g. "aaaa", "1111", "!!!!")
-	repeatingRegex := regexp.MustCompile(`(.)\1{3,}`)
-	cleaned := repeatingRegex.ReplaceAllString(desc, "")
-	// Jika setelah dibersihkan panjangnya < 50% dari aslinya, itu mostly repetisi
-	if len([]rune(cleaned)) < len([]rune(desc))/2 {
+	// 5. Block karakter berulang > 5x berturut-turut (e.g. "aaaaa", "11111", "!!!!!")
+	runes := []rune(desc)
+	maxRepeat := 0
+	currentRepeat := 1
+	for i := 1; i < len(runes); i++ {
+		if runes[i] == runes[i-1] {
+			currentRepeat++
+			if currentRepeat > maxRepeat {
+				maxRepeat = currentRepeat
+			}
+		} else {
+			currentRepeat = 1
+		}
+	}
+	if maxRepeat >= 5 {
 		return fmt.Errorf("VALIDASI: Keterangan tidak valid (karakter berulang). Jelaskan situasi bencana yang sebenarnya.")
 	}
 

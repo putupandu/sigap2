@@ -34,8 +34,6 @@ var (
 	spamWordRegex  = regexp.MustCompile(`(?i)\b(tes|test|coba|testing|halo|ping|p|anjing|babi|bangsat|kontol|memek|jembut|ngentot|tai|goblok|tolol|bajingan|asu|mabar|nongkrong|ngopi|healing|skripsi|tugas kuliah|dosen|gabut|bucin|galau|baper|lebay|mager|ngantuk|capek nganggur|bosen|bokek|tanggal tua|receh|drama|santuy|santai aja|gegara|bete|kesel|bad mood)\b`)
 	// Pola angka-only: hanya digit dan spasi, tanpa huruf apapun
 	numbersOnlyRegex = regexp.MustCompile(`^[\d\s\.,]+$`)
-	// Pola karakter berulang 4x atau lebih
-	repeatingCharRegex = regexp.MustCompile(`(.)\1{3,}`)
 )
 
 // disasterContextWhitelist adalah daftar kata-kata yang WAJIB ada dalam laporan bencana valid.
@@ -157,9 +155,27 @@ func containsDisasterContext(text string) bool {
 
 // detectRepetitiveText mendeteksi teks yang sebagian besar terdiri dari karakter berulang
 func detectRepetitiveText(text string) bool {
-	cleaned := repeatingCharRegex.ReplaceAllString(text, "X")
-	// Jika setelah dibersihkan panjangnya < 60% aslinya, mostly repetisi
-	if len([]rune(text)) > 5 && len([]rune(cleaned)) < len([]rune(text))*60/100 {
+	runes := []rune(text)
+	if len(runes) < 5 {
+		return false
+	}
+	
+	maxRepeat := 0
+	currentRepeat := 1
+	
+	for i := 1; i < len(runes); i++ {
+		if runes[i] == runes[i-1] {
+			currentRepeat++
+			if currentRepeat > maxRepeat {
+				maxRepeat = currentRepeat
+			}
+		} else {
+			currentRepeat = 1
+		}
+	}
+	
+	// Jika ada karakter berulang 5x berturut-turut, anggap repetitif/spam
+	if maxRepeat >= 5 {
 		return true
 	}
 	return false
